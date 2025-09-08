@@ -9,7 +9,7 @@ let isPlaying = false;
 let currentMode = 'playlist';
 let colorThief;
 
-const builtInBacks = ['back/1.png', 'back/11.jpg', 'back/12.jpg', 'back/13.jpg', 'back/14.jpg', 'back/36.jpg', 'back/37.jpg', 'back/9.jpg'];
+const builtInBacks = ['back/1.png', 'back/11.jpg', 'back/12.jpg', 'back/13.jpg', 'back/14.jpg', 'back/36.jpg', 'back/37.jpg'];
 
 const builtInRadioStations = [
     { name: "NRJ DnB", genre: "Drum & Bass", streamUrl: "https://edge04.cdn.bitflip.ee:8888/NRJdnb" },
