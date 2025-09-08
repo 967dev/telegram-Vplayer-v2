@@ -70,15 +70,19 @@ function playTrack(index) {
     currentIndex = index;
     currentRadioIndex = -1;
     const trackInfo = playlist[currentIndex];
+    
     db.getTrackFileFromDB(trackInfo.id, (file) => {
         const audioURL = URL.createObjectURL(file);
         if (player.audioPlayer.src.startsWith('blob:')) URL.revokeObjectURL(player.audioPlayer.src);
+        
         player.audioPlayer.src = audioURL;
         ui.currentTrackTitle.textContent = trackInfo.fileName;
         ui.currentTrackArtist.textContent = "Local File";
         ui.currentTrackArt.src = "https://placehold.co/64x64/1f2937/4b5563?text=Music";
         ui.progressWrapper.classList.remove('hidden');
+        
         setTimeout(() => ui.applyMarqueeIfNeeded(ui.currentTrackTitle), 100);
+        
         player.audioPlayer.play().catch(e => console.error("Playback error:", e));
         ui.player.classList.remove('translate-y-full');
     });
@@ -90,11 +94,13 @@ function playRadioStation(index) {
     currentRadioIndex = index;
     currentIndex = -1;
     const station = builtInRadioStations[index];
+
     player.audioPlayer.src = station.streamUrl;
     ui.currentTrackTitle.textContent = station.name;
     ui.currentTrackArtist.textContent = station.genre;
-    ui.currentTrackArt.src = `https://placehold.co/64x64/1f2937/4b5563?text=Radio`;
+    ui.currentTrackArt.src = "https://placehold.co/64x64/1f2937/4b5563?text=Radio";
     ui.progressWrapper.classList.add('hidden');
+
     player.audioPlayer.play().catch(e => console.error("Radio playback error:", e));
     ui.player.classList.remove('translate-y-full');
 }
@@ -129,6 +135,7 @@ function playPrev() {
 function deleteTrack(index) {
     if (index < 0 || index >= playlist.length) return;
     const trackIdToDelete = playlist[index].id;
+    
     db.deleteTrackFromDB(trackIdToDelete, () => {
         if (index === currentIndex) {
             player.audioPlayer.pause();
@@ -161,19 +168,18 @@ function rgbStringToHex(rgbString) {
     return "#" + ((1 << 24) + (rgb[0] << 16) + (rgb[1] << 8) + rgb[2]).toString(16).slice(1);
 }
 
-function deactivateAllAnimatedBgs() {
+function deactivateParticlesBackground() {
     const particlesContainer = document.getElementById('particles-js');
     if (window.pJSDom && window.pJSDom.length > 0) {
         window.pJSDom[0].pJS.fn.vendors.destroypJS();
         window.pJSDom = [];
     }
     particlesContainer.style.display = 'none';
-    document.getElementById('lava-lamp-bg').style.display = 'none';
     ui.imageBg.style.display = 'block';
 }
 
 function activateParticlesBackground() {
-    deactivateAllAnimatedBgs();
+    deactivateParticlesBackground();
     const particlesContainer = document.getElementById('particles-js');
     particlesContainer.style.display = 'block';
     ui.imageBg.style.display = 'none';
@@ -208,16 +214,8 @@ function activateParticlesBackground() {
     ui.bgModal.classList.add('hidden');
 }
 
-function activateLavaLampBackground() {
-    deactivateAllAnimatedBgs();
-    document.getElementById('lava-lamp-bg').style.display = 'block';
-    ui.imageBg.style.display = 'none';
-    localStorage.setItem('background_image', 'lavalamp');
-    ui.bgModal.classList.add('hidden');
-}
-
 function openBgModalAndLoadImages() {
-    ui.displayBackgrounds(builtInBacks, selectBackground, activateParticlesBackground, activateLavaLampBackground);
+    ui.displayBackgrounds(builtInBacks, selectBackground, activateParticlesBackground);
     ui.bgModal.classList.remove('hidden');
 }
 
@@ -256,7 +254,7 @@ function updateAccentColor(imageDataUrl) {
 }
 
 function selectBackground(imageUrl) {
-    deactivateAllAnimatedBgs();
+    deactivateParticlesBackground();
     localStorage.setItem('background_image', imageUrl);
     ui.imageBg.style.backgroundImage = `url('${imageUrl}')`;
     updateAccentColor(imageUrl);
@@ -267,10 +265,8 @@ function loadSavedBackground() {
     const savedBg = localStorage.getItem('background_image');
     if (savedBg === 'particles') {
         activateParticlesBackground();
-    } else if (savedBg === 'lavalamp') {
-        activateLavaLampBackground();
     } else if (savedBg) {
-        deactivateAllAnimatedBgs();
+        deactivateParticlesBackground();
         ui.imageBg.style.backgroundImage = `url('${savedBg}')`;
         updateAccentColor(savedBg);
     } else {
@@ -290,6 +286,7 @@ function handleBgUpload(event) {
 window.addEventListener('DOMContentLoaded', () => {
     Telegram.WebApp.ready();
     colorThief = new ColorThief();
+
     db.initDB(() => {
         db.loadPlaylistFromDB((loadedPlaylist) => {
             playlist = loadedPlaylist;
@@ -297,6 +294,7 @@ window.addEventListener('DOMContentLoaded', () => {
             ui.updateActiveTrackUI(currentIndex, -1, false, currentMode);
         });
     });
+    
     ui.displayRadioStations(builtInRadioStations, playRadioStation);
     loadSavedBackground();
     const savedMode = localStorage.getItem('player_mode') || 'playlist';
@@ -316,18 +314,24 @@ window.addEventListener('DOMContentLoaded', () => {
     ui.audioUpload.addEventListener('change', handleFiles);
     ui.toggleEqBtn.addEventListener('click', () => player.toggleEqualizer(ui.toggleEqBtn));
     ui.togglePlaylistBtn.addEventListener('click', () => document.body.classList.toggle('playlist-collapsed'));
+    
     ui.changeBgBtn.addEventListener('click', openBgModalAndLoadImages);
+    
     ui.closeBgModal.addEventListener('click', () => ui.bgModal.classList.add('hidden'));
     ui.bgUpload.addEventListener('change', handleBgUpload);
+    
     ui.modePlaylistBtn.addEventListener('click', () => setMode('playlist'));
     ui.modeRadioBtn.addEventListener('click', () => setMode('radio'));
+    
     ui.playPauseBtn.addEventListener('click', togglePlayPause);
     ui.nextBtn.addEventListener('click', playNext);
     ui.prevBtn.addEventListener('click', playPrev);
+    
     player.audioPlayer.addEventListener('timeupdate', () => ui.updateProgress(player.audioPlayer));
     player.audioPlayer.addEventListener('play', () => setPlayingState(true));
     player.audioPlayer.addEventListener('pause', () => setPlayingState(false));
     player.audioPlayer.addEventListener('ended', playNext);
+    
     ui.progressBar.addEventListener('input', () => player.setProgressOnAudio(ui.progressBar));
     ui.volumeSlider.addEventListener('input', () => player.setVolume(ui.volumeSlider));
 });
