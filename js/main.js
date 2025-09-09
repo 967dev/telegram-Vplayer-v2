@@ -85,6 +85,24 @@ function playTrack(index) {
         
         player.audioPlayer.play().catch(e => console.error("Playback error:", e));
         ui.player.classList.remove('translate-y-full');
+
+        // --- ИНТЕГРАЦИЯ MEDIA SESSION API ---
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: trackInfo.fileName,
+                artist: trackInfo.artistName,
+                album: 'Music Player',
+                artwork: [
+                    { src: 'https://placehold.co/96x96/1f2937/4b5563?text=Music', sizes: '96x96', type: 'image/png' },
+                    { src: 'https://placehold.co/128x128/1f2937/4b5563?text=Music', sizes: '128x128', type: 'image/png' },
+                ]
+            });
+            navigator.mediaSession.setActionHandler('play', () => player.audioPlayer.play());
+            navigator.mediaSession.setActionHandler('pause', () => player.audioPlayer.pause());
+            navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+            navigator.mediaSession.setActionHandler('nexttrack', playNext);
+        }
+        // --- КОНЕЦ БЛОКА ---
     });
 }
 
@@ -103,6 +121,24 @@ function playRadioStation(index) {
 
     player.audioPlayer.play().catch(e => console.error("Radio playback error:", e));
     ui.player.classList.remove('translate-y-full');
+
+    // --- ИНТЕГРАЦИЯ MEDIA SESSION API ---
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: station.name,
+            artist: station.genre,
+            album: 'Radio',
+            artwork: [
+                { src: 'https://placehold.co/96x96/1f2937/4b5563?text=Radio', sizes: '96x96', type: 'image/png' },
+                { src: 'https://placehold.co/128x128/1f2937/4b5563?text=Radio', sizes: '128x128', type: 'image/png' },
+            ]
+        });
+        navigator.mediaSession.setActionHandler('play', () => player.audioPlayer.play());
+        navigator.mediaSession.setActionHandler('pause', () => player.audioPlayer.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+        navigator.mediaSession.setActionHandler('nexttrack', playNext);
+    }
+    // --- КОНЕЦ БЛОКА ---
 }
 
 function togglePlayPause() {
@@ -175,14 +211,16 @@ function deactivateParticlesBackground() {
         window.pJSDom = [];
     }
     particlesContainer.style.display = 'none';
+    particlesContainer.classList.remove('light-theme');
     ui.imageBg.style.display = 'block';
 }
 
-function activateParticlesBackground() {
+function activateParticlesDark() {
     deactivateParticlesBackground();
     const particlesContainer = document.getElementById('particles-js');
     particlesContainer.style.display = 'block';
     ui.imageBg.style.display = 'none';
+    
     const randomTheme = particleThemes[Math.floor(Math.random() * particleThemes.length)];
     let particleColor, lineColor;
     if (randomTheme.type === 'dynamic') {
@@ -193,6 +231,7 @@ function activateParticlesBackground() {
         particleColor = randomTheme.particle_color;
         lineColor = randomTheme.line_color;
     }
+
     particlesJS('particles-js', {
         particles: {
             number: { value: 120, density: { enable: true, value_area: 800 } },
@@ -210,12 +249,44 @@ function activateParticlesBackground() {
         },
         retina_detect: true
     });
-    localStorage.setItem('background_image', 'particles');
+    localStorage.setItem('background_image', 'particles_dark');
     ui.bgModal.classList.add('hidden');
 }
 
+function activateParticlesLight() {
+    deactivateParticlesBackground();
+    const particlesContainer = document.getElementById('particles-js');
+    particlesContainer.classList.add('light-theme');
+    particlesContainer.style.display = 'block';
+    ui.imageBg.style.display = 'none';
+
+    const particleColor = '#333333';
+    const lineColor = '#666666';
+
+    particlesJS('particles-js', {
+        particles: {
+            number: { value: 80, density: { enable: true, value_area: 800 } },
+            color: { value: particleColor },
+            shape: { type: "circle" },
+            opacity: { value: 0.8, random: false },
+            size: { value: 3, random: true },
+            line_linked: { enable: true, distance: 150, color: lineColor, opacity: 0.7, width: 1 },
+            move: { enable: true, speed: 2, direction: "none", random: false, straight: false, out_mode: "out" }
+        },
+        interactivity: {
+            detect_on: "canvas",
+            events: { onhover: { enable: true, mode: "grab" }, onclick: { enable: true, mode: "push" } },
+            modes: { grab: { distance: 140, line_opacity: 1 }, push: { particles_nb: 4 } }
+        },
+        retina_detect: true
+    });
+    localStorage.setItem('background_image', 'particles_light');
+    ui.bgModal.classList.add('hidden');
+}
+
+
 function openBgModalAndLoadImages() {
-    ui.displayBackgrounds(builtInBacks, selectBackground, activateParticlesBackground);
+    ui.displayBackgrounds(builtInBacks, selectBackground, activateParticlesDark, activateParticlesLight);
     ui.bgModal.classList.remove('hidden');
 }
 
@@ -263,8 +334,10 @@ function selectBackground(imageUrl) {
 
 function loadSavedBackground() {
     const savedBg = localStorage.getItem('background_image');
-    if (savedBg === 'particles') {
-        activateParticlesBackground();
+    if (savedBg === 'particles_dark') {
+        activateParticlesDark();
+    } else if (savedBg === 'particles_light') {
+        activateParticlesLight();
     } else if (savedBg) {
         deactivateParticlesBackground();
         ui.imageBg.style.backgroundImage = `url('${savedBg}')`;
