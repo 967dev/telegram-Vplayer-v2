@@ -86,7 +86,6 @@ function playTrack(index) {
         player.audioPlayer.play().catch(e => console.error("Playback error:", e));
         ui.player.classList.remove('translate-y-full');
 
-        // --- ИНТЕГРАЦИЯ MEDIA SESSION API ---
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: trackInfo.fileName,
@@ -102,7 +101,6 @@ function playTrack(index) {
             navigator.mediaSession.setActionHandler('previoustrack', playPrev);
             navigator.mediaSession.setActionHandler('nexttrack', playNext);
         }
-        // --- КОНЕЦ БЛОКА ---
     });
 }
 
@@ -122,7 +120,6 @@ function playRadioStation(index) {
     player.audioPlayer.play().catch(e => console.error("Radio playback error:", e));
     ui.player.classList.remove('translate-y-full');
 
-    // --- ИНТЕГРАЦИЯ MEDIA SESSION API ---
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: station.name,
@@ -138,7 +135,6 @@ function playRadioStation(index) {
         navigator.mediaSession.setActionHandler('previoustrack', playPrev);
         navigator.mediaSession.setActionHandler('nexttrack', playNext);
     }
-    // --- КОНЕЦ БЛОКА ---
 }
 
 function togglePlayPause() {
@@ -283,7 +279,6 @@ function activateParticlesLight() {
     localStorage.setItem('background_image', 'particles_light');
     ui.bgModal.classList.add('hidden');
 }
-
 
 function openBgModalAndLoadImages() {
     ui.displayBackgrounds(builtInBacks, selectBackground, activateParticlesDark, activateParticlesLight);
