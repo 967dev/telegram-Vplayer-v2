@@ -12,7 +12,7 @@ let colorThief;
 const builtInBacks = ['back/1.png', 'back/11.jpg', 'back/12.jpg', 'back/13.jpg', 'back/14.jpg', 'back/36.jpg', 'back/37.jpg', 'back/9.jpg'];
 
 const builtInRadioStations = [
-    { name: "NRJ DnB", genre: "Drum & Bass", streamUrl: "https://edge04.cdn.bitflip.ee:8888/NRJdnb" },
+    { name: "Record Ambient", genre: "Ambient", streamUrl: "https://radiorecord.hostingradio.ru/ambient96.aacp" },
     { name: "Lofi Radio", genre: "Chill / Lofi Hip-Hop", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
     { name: "EDM Radio", genre: "Electronic Dance Music", streamUrl: "https://edmradio.stream.laut.fm/edmradio" },
     { name: "Fuko", genre: "Hip-Hop / Rap", streamUrl: "https://radiorecord.hostingradio.ru/mf96.aacp" },
