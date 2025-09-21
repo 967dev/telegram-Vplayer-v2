@@ -12,19 +12,19 @@ let colorThief;
 const builtInBacks = ['back/1.png', 'back/11.jpg', 'back/12.jpg', 'back/13.jpg', 'back/14.jpg', 'back/36.jpg', 'back/37.jpg', 'back/9.jpg'];
 
 const builtInRadioStations = [
-    { name: "Record Ambient", genre: "Ambient", streamUrl: "https://radiorecord.hostingradio.ru/ambient96.aacp" },
-    { name: "Lofi Radio", genre: "Chill / Lofi Hip-Hop", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
-    { name: "EDM Radio", genre: "Electronic Dance Music", streamUrl: "https://edmradio.stream.laut.fm/edmradio" },
-    { name: "Fuko", genre: "Hip-Hop / Rap", streamUrl: "https://radiorecord.hostingradio.ru/mf96.aacp" },
+    { name: "Ambient Record", genre: "Ambient", streamUrl: "https://radiorecord.hostingradio.ru/ambient96.aacp" },
+    { name: "Lofi Box", genre: "Chill / Lofi Hip-Hop", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
+    { name: "EDM", genre: "Electronic Dance Music", streamUrl: "https://edmradio.stream.laut.fm/edmradio" },
+    { name: "Fuko Record", genre: "Hip-Hop / Rap", streamUrl: "https://radiorecord.hostingradio.ru/mf96.aacp" },
     { name: "Like POP", genre: "Pop Hits", streamUrl: "https://likeradiostream.com/likepop" },
-    { name: "Record Rock", genre: "Rock Anthems", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
-    { name: "Pirate Station", genre: "EDM", streamUrl: "https://radiorecord.hostingradio.ru/ps96.aacp" },
-    { name: "Phonk", genre: "Phonk", streamUrl: "https://radiorecord.hostingradio.ru/phonk96.aacp" },
-    { name: "RapHits", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
+    { name: "Rock Record", genre: "Rock Anthems", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
+    { name: "Pirate Station Record", genre: "EDM", streamUrl: "https://radiorecord.hostingradio.ru/ps96.aacp" },
+    { name: "Phonk Record", genre: "Phonk", streamUrl: "https://radiorecord.hostingradio.ru/phonk96.aacp" },
+    { name: "Rap Hits Record", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
     { name: "DNB Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/drumhits96.aacp" },
-    { name: "DNB Liquid", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
-    { name: "Record LoFi", genre: "LoFi", streamUrl: "https://radiorecord.hostingradio.ru/lofi96.aacp" },
-    { name: "Record Hardstyle", genre: "Hardstyle", streamUrl: "https://radiorecord.hostingradio.ru/teo96.aacp" }
+    { name: "DNB Liquid Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
+    { name: "LoFi Record", genre: "LoFi", streamUrl: "https://radiorecord.hostingradio.ru/lofi96.aacp" },
+    { name: "Hardstyle Record", genre: "Hardstyle", streamUrl: "https://radiorecord.hostingradio.ru/teo96.aacp" }
 ];
 
 const particleThemes = [
@@ -33,7 +33,8 @@ const particleThemes = [
     { name: 'Sunset', particle_color: '#FFB88C', line_color: '#DE6262' },
     { name: 'Forest', particle_color: '#56AB2F', line_color: '#A8E063' },
     { name: 'Synthwave', particle_color: '#F472B6', line_color: '#5EEAD4' },
-    { name: 'Fire', particle_color: '#ff4800', line_color: '#ff8c00' }
+    { name: 'Fire', particle_color: '#ff4800', line_color: '#ff8c00' },
+    { name: 'White', particle_color: '#ffffff', line_color: '#ff0000' }
 ];
 
 function setMode(mode) {
