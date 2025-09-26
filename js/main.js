@@ -20,12 +20,8 @@ const builtInBacks = [
     'back/9.jpg',
     'back/44.gif',
     'back/45.gif',
-    'back/46.gif',
-    'back/47.gif',
     'back/48.gif',
     'back/49.gif',
-    'back/zxc.gif',
-    'back/zxc2.gif'
 ];
 
 const builtInRadioStations = [
