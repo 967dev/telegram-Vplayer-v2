@@ -9,7 +9,24 @@ let isPlaying = false;
 let currentMode = 'playlist';
 let colorThief;
 
-const builtInBacks = ['back/1.png', 'back/11.jpg', 'back/12.jpg', 'back/13.jpg', 'back/14.jpg', 'back/36.jpg', 'back/37.jpg', 'back/9.jpg'];
+const builtInBacks = [
+    'back/1.png', 
+    'back/11.jpg', 
+    'back/12.jpg', 
+    'back/13.jpg', 
+    'back/14.jpg', 
+    'back/36.jpg', 
+    'back/37.jpg', 
+    'back/9.jpg',
+    'back/44.gif',
+    'back/45.gif',
+    'back/46.gif',
+    'back/47.gif',
+    'back/48.gif',
+    'back/49.gif',
+    'back/zxc.gif',
+    'back/zxc2.gif'
+];
 
 const builtInRadioStations = [
     { name: "Ambient Record", genre: "Ambient", streamUrl: "https://radiorecord.hostingradio.ru/ambient96.aacp" },
