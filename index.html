@@ -298,16 +298,19 @@
             const searchLoader = document.getElementById('searchLoader');
             const audioPlayer = document.getElementById('audioPlayer');
 
-            // --- СПИСОК ЗЕРКАЛ INVIDIOUS (Самые живучие) ---
-            // Если какие-то перестанут работать, просто обновите этот список
+            // --- СПИСОК СЕРВЕРОВ INVIDIOUS ---
+            // Мы будем стучаться к ним через ПРОКСИ.
             const INVIDIOUS_INSTANCES = [
+                'https://invidious.projectsegfau.lt',
                 'https://inv.tux.pizza',
                 'https://invidious.fdn.fr',
                 'https://vid.puffyan.us',
-                'https://invidious.protokolla.fi',
                 'https://yt.artemislena.eu',
-                'https://invidious.projectsegfau.lt'
+                'https://invidious.drgns.space'
             ];
+
+            // --- ПРОКСИ (Обязательно для GitHub Pages) ---
+            const PROXY_BASE = 'https://api.allorigins.win/raw?url=';
 
             // --- UI HANDLERS ---
             openSearchBtn.addEventListener('click', () => {
@@ -325,30 +328,36 @@
 
             performSearchBtn.addEventListener('click', doSearch);
 
-            // --- ФУНКЦИЯ ЗАПРОСА С ТАЙМАУТОМ И ПЕРЕБОРОМ ---
+            // --- ФУНКЦИЯ ЗАПРОСА ЧЕРЕЗ ПРОКСИ ---
             async function fetchInvidious(endpoint) {
                 for (const base of INVIDIOUS_INSTANCES) {
                     try {
-                        console.log(`Checking server: ${base}`);
+                        const targetUrl = `${base}/api/v1${endpoint}`;
+                        // Оборачиваем запрос в прокси
+                        const proxyUrl = PROXY_BASE + encodeURIComponent(targetUrl);
                         
-                        // Создаем контроллер для отмены запроса, если он висит долго
+                        console.log(`Trying via Proxy: ${base}`);
+                        
+                        // Таймаут 5 секунд
                         const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5 сек макс
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-                        const response = await fetch(`${base}/api/v1${endpoint}`, {
+                        const response = await fetch(proxyUrl, {
                             signal: controller.signal
                         });
                         clearTimeout(timeoutId);
 
                         if (response.ok) {
                             return await response.json();
+                        } else {
+                            throw new Error(`Status ${response.status}`);
                         }
                     } catch (err) {
-                        console.warn(`Server ${base} failed. Next...`);
-                        continue; 
+                        console.warn(`Proxy failed for ${base}: ${err.message}`);
+                        continue; // Пробуем следующий
                     }
                 }
-                throw new Error('All Invidious instances failed');
+                throw new Error('All Invidious instances failed via Proxy');
             }
 
             // --- ПОИСК ---
@@ -360,7 +369,7 @@
                 searchLoader.style.display = 'block';
 
                 try {
-                    // type=video отсеивает каналы и плейлисты
+                    // type=video
                     const data = await fetchInvidious(`/search?q=${encodeURIComponent(query)}&type=video`);
                     
                     searchLoader.style.display = 'none';
@@ -374,10 +383,9 @@
                         const div = document.createElement('div');
                         div.className = 'search-result-item rounded-lg';
                         
-                        // Пытаемся найти картинку хорошего качества
                         let thumb = 'https://placehold.co/64x64?text=Music';
                         if (item.videoThumbnails && item.videoThumbnails.length > 0) {
-                             // Берем вторую с конца (обычно medium) или первую
+                            // Ищем картинку среднего качества
                             thumb = item.videoThumbnails.find(t => t.quality === 'medium')?.url || item.videoThumbnails[0].url;
                         }
 
@@ -396,39 +404,39 @@
                 } catch (error) {
                     console.error(error);
                     searchLoader.style.display = 'none';
-                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Network error. Try again.</p>';
+                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Proxy Error. Try again.</p>';
                 }
             }
 
             // --- ВОСПРОИЗВЕДЕНИЕ ---
             async function playTrack(videoId, title, artist, art) {
                 searchLoader.style.display = 'block';
-                console.log(`Loading: ${videoId}`);
+                console.log(`Loading track details for: ${videoId}`);
 
                 try {
-                    // Запрашиваем детали видео
+                    // Получаем детали видео (тоже через прокси!)
                     const videoData = await fetchInvidious(`/videos/${videoId}`);
 
                     let audioUrl = null;
 
-                    // 1. Ищем в adaptiveFormats (это потоки разделенные на видео и аудио)
+                    // 1. Ищем m4a/aac аудио в adaptiveFormats (лучшее качество)
                     if (videoData.adaptiveFormats) {
-                        // Ищем m4a или webm аудио, сортируем по битрейту (лучшее качество первое)
                         const audioStream = videoData.adaptiveFormats
-                            .filter(f => f.type && f.type.includes('audio'))
+                            .filter(f => f.type && f.type.includes('audio/mp4'))
                             .sort((a, b) => parseInt(b.bitrate) - parseInt(a.bitrate))[0];
                         
                         if (audioStream) audioUrl = audioStream.url;
                     }
 
-                    // 2. Если не нашли, ищем в formatStreams (комбинированные потоки)
+                    // 2. Запасной вариант
                     if (!audioUrl && videoData.formatStreams) {
-                        const backupStream = videoData.formatStreams[0]; // Берем первый попавшийся
+                        const backupStream = videoData.formatStreams.find(f => f.type && f.type.includes('mp4')); // mp4 видео+аудио
                         if (backupStream) audioUrl = backupStream.url;
                     }
 
                     if (audioUrl) {
-                        // Устанавливаем метаданные
+                        console.log("Audio URL found:", audioUrl);
+                        
                         document.getElementById('currentTrackTitle').textContent = title;
                         document.getElementById('currentTrackArtist').textContent = artist;
                         document.getElementById('currentTrackArt').src = art;
@@ -436,7 +444,7 @@
                         const playerFooter = document.getElementById('player');
                         if(playerFooter) playerFooter.style.transform = "translateY(0)";
 
-                        // Запускаем
+                        // Ссылку на поток скармливаем напрямую (обычно googlevideo.com разрешает это)
                         audioPlayer.src = audioUrl;
                         
                         const playPromise = audioPlayer.play();
@@ -449,12 +457,12 @@
                         document.getElementById('pauseIcon').classList.remove('hidden');
 
                     } else {
-                        alert('Could not extract audio stream.');
+                        alert('Could not find a playable audio stream.');
                     }
 
                 } catch (error) {
                     console.error(error);
-                    alert('Error playing track. Please try another song.');
+                    alert('Error loading track details via Proxy.');
                 } finally {
                     searchLoader.style.display = 'none';
                 }
