@@ -298,62 +298,47 @@
             const searchLoader = document.getElementById('searchLoader');
             const audioPlayer = document.getElementById('audioPlayer');
 
-            // 1. СПИСОК API СЕРВЕРОВ (Piped Instances)
-            // Мы будем перебирать их, пока один не ответит
+            // СПИСОК СЕРВЕРОВ (Зеркала)
+            // Если первый не работает, скрипт попробует второй и т.д.
             const API_INSTANCES = [
-                'https://pipedapi.kavin.rocks',       // Основной
-                'https://api.piped.privacy.com.de',   // Германия
-                'https://pipedapi.ducks.party',       // Запасной
-                'https://pipedapi.smnz.de',           // Запасной
-                'https://api.piped.projectsegfau.lt', // Запасной
-                'https://pipedapi.drgns.space'        // Тот, что был у вас (в конец списка)
+                'https://pipedapi.drgns.space',      // Обычно очень стабильный
+                'https://api.piped.private.coffee',  // Хорошая альтернатива
+                'https://pipedapi.kavin.rocks',      // Ваш старый (как запасной)
+                'https://api.piped.otter.sh'         // Запасной
             ];
 
-            // 2. CORS ПРОКСИ (Спасательный круг)
-            // Используем, если прямой запрос блокируется браузером
-            const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-
-            // UI Logic
+            // Open Modal
             openSearchBtn.addEventListener('click', () => {
                 searchModal.classList.remove('hidden');
                 searchInput.focus();
             });
 
+            // Close Modal
             closeSearchBtn.addEventListener('click', () => {
                 searchModal.classList.add('hidden');
             });
 
+            // Trigger search on Enter key
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') doSearch();
             });
 
             performSearchBtn.addEventListener('click', doSearch);
 
-            // --- УМНАЯ ФУНКЦИЯ ЗАПРОСА (С ПРОКСИ И ПЕРЕБОРОМ) ---
-            async function fetchSmart(endpoint) {
-                // Пробуем каждый сервер из списка
+            // Функция для запроса с перебором зеркал
+            async function fetchWithFallback(endpoint) {
                 for (const base of API_INSTANCES) {
-                    const targetUrl = `${base}${endpoint}`;
-                    console.log(`Trying: ${targetUrl}`);
-
                     try {
-                        // Попытка 1: Прямой запрос (быстро)
-                        const response = await fetch(targetUrl);
-                        if (response.ok) return await response.json();
-                        throw new Error('Direct fetch failed');
-                    } catch (directError) {
-                        // Если ошибка (CORS или сервер лежит), пробуем через ПРОКСИ
-                        console.warn(`Direct access to ${base} failed, trying Proxy...`);
-                        try {
-                            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(targetUrl)}`;
-                            const proxyResponse = await fetch(proxyUrl);
-                            if (proxyResponse.ok) return await proxyResponse.json();
-                        } catch (proxyError) {
-                            console.warn(`Proxy also failed for ${base}. Moving to next server.`);
-                        }
+                        console.log(`Trying server: ${base}...`);
+                        const response = await fetch(`${base}${endpoint}`);
+                        if (!response.ok) throw new Error('Status not ok');
+                        return await response.json(); // Если успех, возвращаем данные
+                    } catch (err) {
+                        console.warn(`Server ${base} failed, trying next...`, err);
+                        continue; // Пробуем следующий
                     }
                 }
-                throw new Error('All servers and proxies failed');
+                throw new Error('All servers failed'); // Если все упали
             }
 
             async function doSearch() {
@@ -364,8 +349,8 @@
                 searchLoader.style.display = 'block';
 
                 try {
-                    // Используем нашу умную функцию fetchSmart
-                    const data = await fetchSmart(`/search?q=${encodeURIComponent(query)}&filter=music_songs`);
+                    // Используем нашу новую функцию с перебором серверов
+                    const data = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&filter=music_songs`);
                     
                     searchLoader.style.display = 'none';
 
@@ -374,10 +359,10 @@
                         return;
                     }
 
-                    data.items.slice(0, 15).forEach(item => {
+                    data.items.slice(0, 10).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'search-result-item rounded-lg';
-                        
+                        // Извлекаем ID (поддерживает разные форматы URL)
                         let videoId = '';
                         if (item.url.includes('v=')) {
                             videoId = item.url.split('v=')[1];
@@ -400,7 +385,7 @@
                 } catch (error) {
                     console.error(error);
                     searchLoader.style.display = 'none';
-                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Connection error. Try again.</p>';
+                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Servers busy. Try again.</p>';
                 }
             }
 
@@ -408,13 +393,14 @@
                 searchLoader.style.display = 'block';
                 
                 try {
-                    // Получаем ссылку на поток через умный fetch
-                    const data = await fetchSmart(`/streams/${videoId}`);
+                    // Тоже используем перебор серверов для получения потока
+                    const data = await fetchWithFallback(`/streams/${videoId}`);
                     
-                    // Ищем m4a (лучше всего для Web Audio API)
+                    // Ищем m4a поток, он лучше всего работает в вебе
                     const audioStream = data.audioStreams.find(s => s.mimeType.includes('audio/mp4')) || data.audioStreams[0];
 
                     if (audioStream) {
+                        // Обновляем UI
                         document.getElementById('currentTrackTitle').textContent = title;
                         document.getElementById('currentTrackArtist').textContent = artist;
                         document.getElementById('currentTrackArt').src = art;
@@ -422,16 +408,12 @@
                         const playerFooter = document.getElementById('player');
                         if(playerFooter) playerFooter.style.transform = "translateY(0)";
 
-                        // ВАЖНО: Ссылка на аудиопоток обычно работает напрямую, 
-                        // так как Google Video сервера часто имеют CORS *
+                        // Запуск
                         audioPlayer.src = audioStream.url;
                         
-                        // Обработка запуска (Telegram иногда блокирует автоплей)
                         const playPromise = audioPlayer.play();
                         if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                console.log('Autoplay prevented. User interaction needed.', error);
-                            });
+                            playPromise.catch(error => console.log('Autoplay prevented:', error));
                         }
 
                         searchModal.classList.add('hidden');
@@ -440,12 +422,12 @@
                         document.getElementById('pauseIcon').classList.remove('hidden');
 
                     } else {
-                        alert('No audio stream found for this track.');
+                        alert('No audio stream found.');
                     }
 
                 } catch (error) {
                     console.error(error);
-                    alert('Could not load track. Servers are busy.');
+                    alert('Error loading track (All mirrors failed).');
                 } finally {
                     searchLoader.style.display = 'none';
                 }
