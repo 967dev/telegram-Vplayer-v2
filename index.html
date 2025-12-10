@@ -298,8 +298,14 @@
             const searchLoader = document.getElementById('searchLoader');
             const audioPlayer = document.getElementById('audioPlayer');
 
-            // API Configuration
-            const API_BASE = 'https://pipedapi.kavin.rocks'; // Alternative: https://api.piped.otter.sh
+            // СПИСОК СЕРВЕРОВ (Зеркала)
+            // Если первый не работает, скрипт попробует второй и т.д.
+            const API_INSTANCES = [
+                'https://pipedapi.drgns.space',      // Обычно очень стабильный
+                'https://api.piped.private.coffee',  // Хорошая альтернатива
+                'https://pipedapi.kavin.rocks',      // Ваш старый (как запасной)
+                'https://api.piped.otter.sh'         // Запасной
+            ];
 
             // Open Modal
             openSearchBtn.addEventListener('click', () => {
@@ -319,6 +325,22 @@
 
             performSearchBtn.addEventListener('click', doSearch);
 
+            // Функция для запроса с перебором зеркал
+            async function fetchWithFallback(endpoint) {
+                for (const base of API_INSTANCES) {
+                    try {
+                        console.log(`Trying server: ${base}...`);
+                        const response = await fetch(`${base}${endpoint}`);
+                        if (!response.ok) throw new Error('Status not ok');
+                        return await response.json(); // Если успех, возвращаем данные
+                    } catch (err) {
+                        console.warn(`Server ${base} failed, trying next...`, err);
+                        continue; // Пробуем следующий
+                    }
+                }
+                throw new Error('All servers failed'); // Если все упали
+            }
+
             async function doSearch() {
                 const query = searchInput.value.trim();
                 if (!query) return;
@@ -327,8 +349,8 @@
                 searchLoader.style.display = 'block';
 
                 try {
-                    const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&filter=music_songs`);
-                    const data = await response.json();
+                    // Используем нашу новую функцию с перебором серверов
+                    const data = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&filter=music_songs`);
                     
                     searchLoader.style.display = 'none';
 
@@ -340,7 +362,13 @@
                     data.items.slice(0, 10).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'search-result-item rounded-lg';
-                        const videoId = item.url.split('v=')[1];
+                        // Извлекаем ID (поддерживает разные форматы URL)
+                        let videoId = '';
+                        if (item.url.includes('v=')) {
+                            videoId = item.url.split('v=')[1];
+                        } else {
+                            videoId = item.url.split('/').pop();
+                        }
                         
                         div.innerHTML = `
                             <img src="${item.thumbnail}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
@@ -357,7 +385,7 @@
                 } catch (error) {
                     console.error(error);
                     searchLoader.style.display = 'none';
-                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Error fetching data.</p>';
+                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Servers busy. Try again.</p>';
                 }
             }
 
@@ -365,35 +393,31 @@
                 searchLoader.style.display = 'block';
                 
                 try {
-                    const response = await fetch(`${API_BASE}/streams/${videoId}`);
-                    const data = await response.json();
+                    // Тоже используем перебор серверов для получения потока
+                    const data = await fetchWithFallback(`/streams/${videoId}`);
                     
-                    // Find audio stream (m4a usually works best for web)
+                    // Ищем m4a поток, он лучше всего работает в вебе
                     const audioStream = data.audioStreams.find(s => s.mimeType.includes('audio/mp4')) || data.audioStreams[0];
 
                     if (audioStream) {
-                        // Update Player UI
+                        // Обновляем UI
                         document.getElementById('currentTrackTitle').textContent = title;
                         document.getElementById('currentTrackArtist').textContent = artist;
                         document.getElementById('currentTrackArt').src = art;
 
-                        // Ensure player is visible (simulate playlist expansion logic if needed)
                         const playerFooter = document.getElementById('player');
                         if(playerFooter) playerFooter.style.transform = "translateY(0)";
 
-                        // Set Source and Play
+                        // Запуск
                         audioPlayer.src = audioStream.url;
                         
-                        // Handle play promise
                         const playPromise = audioPlayer.play();
                         if (playPromise !== undefined) {
                             playPromise.catch(error => console.log('Autoplay prevented:', error));
                         }
 
-                        // Close modal
                         searchModal.classList.add('hidden');
                         
-                        // Update Play/Pause Icon state manually since main.js might not catch external src change immediately
                         document.getElementById('playIcon').classList.add('hidden');
                         document.getElementById('pauseIcon').classList.remove('hidden');
 
@@ -403,7 +427,7 @@
 
                 } catch (error) {
                     console.error(error);
-                    alert('Error loading track.');
+                    alert('Error loading track (All mirrors failed).');
                 } finally {
                     searchLoader.style.display = 'none';
                 }
