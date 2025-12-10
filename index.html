@@ -298,15 +298,16 @@
             const searchLoader = document.getElementById('searchLoader');
             const audioPlayer = document.getElementById('audioPlayer');
 
-            // НОВОЕ API
-            const API_BASE = 'https://musicapi.x007.workers.dev';
-            
-            // Выбираем движок 'seevn' (Saavn), так как он отдает MP3/MP4. 
-            // 'gaama' отдает m3u8, который сложнее воспроизвести.
-            const SEARCH_ENGINE = 'seevn'; 
-
-            // ПРОКСИ (на случай CORS блокировок)
-            const PROXY_BASE = 'https://api.allorigins.win/raw?url=';
+            // --- СПИСОК ЗЕРКАЛ INVIDIOUS (Самые живучие) ---
+            // Если какие-то перестанут работать, просто обновите этот список
+            const INVIDIOUS_INSTANCES = [
+                'https://inv.tux.pizza',
+                'https://invidious.fdn.fr',
+                'https://vid.puffyan.us',
+                'https://invidious.protokolla.fi',
+                'https://yt.artemislena.eu',
+                'https://invidious.projectsegfau.lt'
+            ];
 
             // --- UI HANDLERS ---
             openSearchBtn.addEventListener('click', () => {
@@ -324,25 +325,30 @@
 
             performSearchBtn.addEventListener('click', doSearch);
 
-            // --- УМНАЯ ФУНКЦИЯ ЗАПРОСА (С ПРОКСИ) ---
-            async function fetchSmart(url) {
-                try {
-                    console.log(`Trying Direct: ${url}`);
-                    const response = await fetch(url);
-                    if (response.ok) return await response.json();
-                    throw new Error(`Status ${response.status}`);
-                } catch (directErr) {
-                    console.warn(`Direct failed (${directErr.message})... TRYING PROXY.`);
+            // --- ФУНКЦИЯ ЗАПРОСА С ТАЙМАУТОМ И ПЕРЕБОРОМ ---
+            async function fetchInvidious(endpoint) {
+                for (const base of INVIDIOUS_INSTANCES) {
                     try {
-                        const proxyUrl = PROXY_BASE + encodeURIComponent(url);
-                        const proxyResponse = await fetch(proxyUrl);
-                        if (proxyResponse.ok) return await proxyResponse.json();
-                    } catch (proxyErr) {
-                        console.warn(`Proxy also failed.`);
-                        throw new Error('Network failed');
+                        console.log(`Checking server: ${base}`);
+                        
+                        // Создаем контроллер для отмены запроса, если он висит долго
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5 сек макс
+
+                        const response = await fetch(`${base}/api/v1${endpoint}`, {
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        if (response.ok) {
+                            return await response.json();
+                        }
+                    } catch (err) {
+                        console.warn(`Server ${base} failed. Next...`);
+                        continue; 
                     }
                 }
-                throw new Error('Fetch failed');
+                throw new Error('All Invidious instances failed');
             }
 
             // --- ПОИСК ---
@@ -354,73 +360,88 @@
                 searchLoader.style.display = 'block';
 
                 try {
-                    // Формируем запрос согласно документации
-                    const url = `${API_BASE}/search?q=${encodeURIComponent(query)}&searchEngine=${SEARCH_ENGINE}`;
-                    
-                    const data = await fetchSmart(url);
+                    // type=video отсеивает каналы и плейлисты
+                    const data = await fetchInvidious(`/search?q=${encodeURIComponent(query)}&type=video`);
                     
                     searchLoader.style.display = 'none';
 
-                    // Проверяем структуру ответа (у этого API массив лежит в .response)
-                    if (!data.response || data.response.length === 0) {
+                    if (!data || data.length === 0) {
                         searchResults.innerHTML = '<p class="text-center text-gray-400 mt-4">No results found.</p>';
                         return;
                     }
 
-                    data.response.forEach(item => {
+                    data.slice(0, 15).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'search-result-item rounded-lg';
                         
+                        // Пытаемся найти картинку хорошего качества
+                        let thumb = 'https://placehold.co/64x64?text=Music';
+                        if (item.videoThumbnails && item.videoThumbnails.length > 0) {
+                             // Берем вторую с конца (обычно medium) или первую
+                            thumb = item.videoThumbnails.find(t => t.quality === 'medium')?.url || item.videoThumbnails[0].url;
+                        }
+
                         div.innerHTML = `
-                            <img src="${item.img}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
+                            <img src="${thumb}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
                             <div class="overflow-hidden">
                                 <p class="font-bold text-sm truncate">${item.title}</p>
-                                <p class="text-xs text-gray-400 truncate">ID: ${item.id.substring(0, 10)}...</p>
+                                <p class="text-xs text-gray-400 truncate">${item.author}</p>
                             </div>
                         `;
 
-                        // Передаем ID песни в функцию воспроизведения
-                        div.onclick = () => playTrack(item.id, item.title, "Unknown Artist", item.img);
+                        div.onclick = () => playTrack(item.videoId, item.title, item.author, thumb);
                         searchResults.appendChild(div);
                     });
 
                 } catch (error) {
                     console.error(error);
                     searchLoader.style.display = 'none';
-                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">API Error (Possibly Deprecated).</p>';
+                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Network error. Try again.</p>';
                 }
             }
 
             // --- ВОСПРОИЗВЕДЕНИЕ ---
-            async function playTrack(songId, title, artist, art) {
+            async function playTrack(videoId, title, artist, art) {
                 searchLoader.style.display = 'block';
-                console.log(`Fetching track ID: ${songId}`);
-                
+                console.log(`Loading: ${videoId}`);
+
                 try {
-                    // Запрос на получение прямой ссылки (/fetch)
-                    const url = `${API_BASE}/fetch?id=${songId}`;
-                    const data = await fetchSmart(url);
+                    // Запрашиваем детали видео
+                    const videoData = await fetchInvidious(`/videos/${videoId}`);
 
-                    // У этого API ссылка лежит прямо в data.response
-                    const streamUrl = data.response;
+                    let audioUrl = null;
 
-                    if (streamUrl && (streamUrl.startsWith('http') || streamUrl.length > 10)) {
-                        console.log("Stream found:", streamUrl);
+                    // 1. Ищем в adaptiveFormats (это потоки разделенные на видео и аудио)
+                    if (videoData.adaptiveFormats) {
+                        // Ищем m4a или webm аудио, сортируем по битрейту (лучшее качество первое)
+                        const audioStream = videoData.adaptiveFormats
+                            .filter(f => f.type && f.type.includes('audio'))
+                            .sort((a, b) => parseInt(b.bitrate) - parseInt(a.bitrate))[0];
+                        
+                        if (audioStream) audioUrl = audioStream.url;
+                    }
 
-                        // Обновляем плеер
+                    // 2. Если не нашли, ищем в formatStreams (комбинированные потоки)
+                    if (!audioUrl && videoData.formatStreams) {
+                        const backupStream = videoData.formatStreams[0]; // Берем первый попавшийся
+                        if (backupStream) audioUrl = backupStream.url;
+                    }
+
+                    if (audioUrl) {
+                        // Устанавливаем метаданные
                         document.getElementById('currentTrackTitle').textContent = title;
-                        // Это API не возвращает имя артиста в поиске, ставим заглушку или можно попробовать вытащить из Title
-                        document.getElementById('currentTrackArtist').textContent = artist; 
+                        document.getElementById('currentTrackArtist').textContent = artist;
                         document.getElementById('currentTrackArt').src = art;
 
                         const playerFooter = document.getElementById('player');
                         if(playerFooter) playerFooter.style.transform = "translateY(0)";
 
-                        audioPlayer.src = streamUrl;
+                        // Запускаем
+                        audioPlayer.src = audioUrl;
                         
                         const playPromise = audioPlayer.play();
                         if (playPromise !== undefined) {
-                            playPromise.catch(error => console.log('Autoplay prevented:', error));
+                            playPromise.catch(error => console.log('Autoplay blocked:', error));
                         }
 
                         searchModal.classList.add('hidden');
@@ -428,12 +449,12 @@
                         document.getElementById('pauseIcon').classList.remove('hidden');
 
                     } else {
-                        alert('Error: API returned empty stream URL.');
+                        alert('Could not extract audio stream.');
                     }
 
                 } catch (error) {
                     console.error(error);
-                    alert('Error playing track. API might be down.');
+                    alert('Error playing track. Please try another song.');
                 } finally {
                     searchLoader.style.display = 'none';
                 }
