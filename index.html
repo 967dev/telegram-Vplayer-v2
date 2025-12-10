@@ -298,16 +298,14 @@
             const searchLoader = document.getElementById('searchLoader');
             const audioPlayer = document.getElementById('audioPlayer');
 
-            // 1. СПИСОК СЕРВЕРОВ
-            // drgns.space стоит первым, так как он у вас хорошо искал
-            const API_INSTANCES = [
-                'https://pipedapi.drgns.space',      
-                'https://pipedapi.kavin.rocks',      
-                'https://api.piped.private.coffee',
-                'https://api.piped.otter.sh'         
-            ];
+            // НОВОЕ API
+            const API_BASE = 'https://musicapi.x007.workers.dev';
+            
+            // Выбираем движок 'seevn' (Saavn), так как он отдает MP3/MP4. 
+            // 'gaama' отдает m3u8, который сложнее воспроизвести.
+            const SEARCH_ENGINE = 'seevn'; 
 
-            // 2. ПРОКСИ СЕРВИС (Спасает от CORS ошибок)
+            // ПРОКСИ (на случай CORS блокировок)
             const PROXY_BASE = 'https://api.allorigins.win/raw?url=';
 
             // --- UI HANDLERS ---
@@ -326,34 +324,28 @@
 
             performSearchBtn.addEventListener('click', doSearch);
 
-            // --- ГЛАВНАЯ ФУНКЦИЯ ЗАПРОСА (С ПРОКСИ) ---
-            async function fetchWithFallback(endpoint) {
-                for (const base of API_INSTANCES) {
-                    const targetUrl = `${base}${endpoint}`;
-                    
+            // --- УМНАЯ ФУНКЦИЯ ЗАПРОСА (С ПРОКСИ) ---
+            async function fetchSmart(url) {
+                try {
+                    console.log(`Trying Direct: ${url}`);
+                    const response = await fetch(url);
+                    if (response.ok) return await response.json();
+                    throw new Error(`Status ${response.status}`);
+                } catch (directErr) {
+                    console.warn(`Direct failed (${directErr.message})... TRYING PROXY.`);
                     try {
-                        // Попытка 1: Прямой запрос (Быстро)
-                        console.log(`Trying direct: ${targetUrl}`);
-                        const response = await fetch(targetUrl);
-                        if (!response.ok) throw new Error('Status not ok');
-                        return await response.json();
-                    } catch (err) {
-                        // Попытка 2: Если заблокировали (CORS), идем через ПРОКСИ
-                        console.warn(`Direct failed (${err.message}), trying Proxy for ${base}...`);
-                        try {
-                            const proxyUrl = PROXY_BASE + encodeURIComponent(targetUrl);
-                            const proxyResponse = await fetch(proxyUrl);
-                            if (!proxyResponse.ok) throw new Error('Proxy status not ok');
-                            return await proxyResponse.json();
-                        } catch (proxyErr) {
-                            console.warn(`Proxy also failed for ${base}. Next server.`);
-                            continue; // Пробуем следующий сервер из списка
-                        }
+                        const proxyUrl = PROXY_BASE + encodeURIComponent(url);
+                        const proxyResponse = await fetch(proxyUrl);
+                        if (proxyResponse.ok) return await proxyResponse.json();
+                    } catch (proxyErr) {
+                        console.warn(`Proxy also failed.`);
+                        throw new Error('Network failed');
                     }
                 }
-                throw new Error('All servers failed');
+                throw new Error('Fetch failed');
             }
 
+            // --- ПОИСК ---
             async function doSearch() {
                 const query = searchInput.value.trim();
                 if (!query) return;
@@ -362,85 +354,86 @@
                 searchLoader.style.display = 'block';
 
                 try {
-                    // Используем функцию с прокси
-                    const data = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&filter=music_songs`);
+                    // Формируем запрос согласно документации
+                    const url = `${API_BASE}/search?q=${encodeURIComponent(query)}&searchEngine=${SEARCH_ENGINE}`;
+                    
+                    const data = await fetchSmart(url);
                     
                     searchLoader.style.display = 'none';
 
-                    if (!data.items || data.items.length === 0) {
+                    // Проверяем структуру ответа (у этого API массив лежит в .response)
+                    if (!data.response || data.response.length === 0) {
                         searchResults.innerHTML = '<p class="text-center text-gray-400 mt-4">No results found.</p>';
                         return;
                     }
 
-                    data.items.slice(0, 10).forEach(item => {
+                    data.response.forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'search-result-item rounded-lg';
                         
-                        let videoId = '';
-                        if (item.url.includes('v=')) {
-                            videoId = item.url.split('v=')[1];
-                        } else {
-                            videoId = item.url.split('/').pop();
-                        }
-                        
                         div.innerHTML = `
-                            <img src="${item.thumbnail}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
+                            <img src="${item.img}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
                             <div class="overflow-hidden">
                                 <p class="font-bold text-sm truncate">${item.title}</p>
-                                <p class="text-xs text-gray-400 truncate">${item.uploaderName}</p>
+                                <p class="text-xs text-gray-400 truncate">ID: ${item.id.substring(0, 10)}...</p>
                             </div>
                         `;
 
-                        div.onclick = () => playTrack(videoId, item.title, item.uploaderName, item.thumbnail);
+                        // Передаем ID песни в функцию воспроизведения
+                        div.onclick = () => playTrack(item.id, item.title, "Unknown Artist", item.img);
                         searchResults.appendChild(div);
                     });
 
                 } catch (error) {
                     console.error(error);
                     searchLoader.style.display = 'none';
-                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Connection failed. Try again.</p>';
+                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">API Error (Possibly Deprecated).</p>';
                 }
             }
 
-            async function playTrack(videoId, title, artist, art) {
+            // --- ВОСПРОИЗВЕДЕНИЕ ---
+            async function playTrack(songId, title, artist, art) {
                 searchLoader.style.display = 'block';
+                console.log(`Fetching track ID: ${songId}`);
                 
                 try {
-                    // Получаем прямые ссылки (тоже через прокси, если нужно)
-                    const data = await fetchWithFallback(`/streams/${videoId}`);
-                    
-                    // Ищем аудиопоток m4a
-                    const audioStream = data.audioStreams.find(s => s.mimeType.includes('audio/mp4')) || data.audioStreams[0];
+                    // Запрос на получение прямой ссылки (/fetch)
+                    const url = `${API_BASE}/fetch?id=${songId}`;
+                    const data = await fetchSmart(url);
 
-                    if (audioStream) {
+                    // У этого API ссылка лежит прямо в data.response
+                    const streamUrl = data.response;
+
+                    if (streamUrl && (streamUrl.startsWith('http') || streamUrl.length > 10)) {
+                        console.log("Stream found:", streamUrl);
+
                         // Обновляем плеер
                         document.getElementById('currentTrackTitle').textContent = title;
-                        document.getElementById('currentTrackArtist').textContent = artist;
+                        // Это API не возвращает имя артиста в поиске, ставим заглушку или можно попробовать вытащить из Title
+                        document.getElementById('currentTrackArtist').textContent = artist; 
                         document.getElementById('currentTrackArt').src = art;
 
                         const playerFooter = document.getElementById('player');
                         if(playerFooter) playerFooter.style.transform = "translateY(0)";
 
-                        // Запуск аудио
-                        audioPlayer.src = audioStream.url;
+                        audioPlayer.src = streamUrl;
                         
                         const playPromise = audioPlayer.play();
                         if (playPromise !== undefined) {
                             playPromise.catch(error => console.log('Autoplay prevented:', error));
                         }
 
-                        // Закрываем поиск, меняем иконки
                         searchModal.classList.add('hidden');
                         document.getElementById('playIcon').classList.add('hidden');
                         document.getElementById('pauseIcon').classList.remove('hidden');
 
                     } else {
-                        alert('No audio stream found.');
+                        alert('Error: API returned empty stream URL.');
                     }
 
                 } catch (error) {
                     console.error(error);
-                    alert('Error loading track (Proxy failed).');
+                    alert('Error playing track. API might be down.');
                 } finally {
                     searchLoader.style.display = 'none';
                 }
