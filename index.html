@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Music Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -52,27 +52,131 @@
             width: 100%; height: 100%;
             z-index: 3; pointer-events: none;
         }
-        .marquee-wrapper { white-space: nowrap; overflow: hidden; width: 100%; }
-        .is-scrolling .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 12s linear infinite; }
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .marquee-wrapper {
+            white-space: nowrap; overflow: hidden; width: 100%;
+        }
+        .is-scrolling .marquee-text {
+            display: inline-block; padding-left: 100%;
+            animation: marquee 12s linear infinite;
+        }
+        @keyframes marquee {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
         main {
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 80px, black calc(100% - 80px), transparent 100%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 80px, black calc(100% - 80px), transparent 100%);
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .accent-bg { background-color: rgb(var(--primary-color-rgb)); transition: background-color 0.5s ease; }
-        .accent-bg:hover { background-color: rgb(var(--primary-color-rgb)) !important; filter: brightness(1.2); }
-        .accent-bg-lite { background-color: rgba(var(--primary-color-rgb), 0.3); border-color: rgba(var(--primary-color-rgb), 0.5); }
-        .accent-bg-lite-paused { background-color: rgba(var(--primary-color-rgb), 0.2); border-color: rgba(var(--primary-color-rgb), 0.4); }
-        body.playlist-collapsed main#playlistContainer,
-        body.playlist-collapsed main#radioContainer { transform: translateX(-100%); opacity: 0; pointer-events: none; }
-        body.playlist-collapsed #image-bg { filter: blur(0px); }
-        #particles-js { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: none; }
+        .accent-bg {
+            background-color: rgb(var(--primary-color-rgb));
+            transition: background-color 0.5s ease;
+        }
+        .accent-bg:hover {
+            background-color: rgb(var(--primary-color-rgb)) !important;
+            filter: brightness(1.2);
+        }
+        .accent-bg-lite {
+            background-color: rgba(var(--primary-color-rgb), 0.3);
+            border-color: rgba(var(--primary-color-rgb), 0.5);
+        }
+        .accent-bg-lite-paused {
+            background-color: rgba(var(--primary-color-rgb), 0.2);
+            border-color: rgba(var(--primary-color-rgb), 0.4);
+        }
+        
+        /* Styles for collapsed state */
+        body.playlist-collapsed main#playlistContainer {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        body.playlist-collapsed main#radioContainer {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        body.playlist-collapsed #image-bg {
+            filter: blur(0px);
+        }
+
+        /* Стиль для контейнера с частицами */
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; 
+            display: none; 
+        }
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        #bg-video {
+            width: 100vw;
+            height: 56.25vw;
+            min-height: 100vh;
+            min-width: 177.77vh;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .video-background::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); 
+        }
+
+        /* ----- STYLES FOR SEARCH ----- */
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-result-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="text-white antialiased">
+
     <div id="image-bg"></div>
     <div id="particles-js"></div>
+    
+    <div class="video-background" style="display: none;">
+        <video playsinline autoplay muted loop id="bg-video">
+            <source src="video/background.mp4" type="video/mp4">
+        </video>
+    </div>
+
     <div id="app" class="relative flex flex-col h-screen max-w-md mx-auto bg-transparent shadow-2xl overflow-hidden">
         <canvas id="visualizerCanvas"></canvas>
         <header class="relative p-4 bg-transparent z-10 text-center">
@@ -80,49 +184,231 @@
                 <button id="modePlaylistBtn" class="accent-bg text-white font-bold py-2 px-5 rounded-full transition-colors">My Music</button>
                 <button id="modeRadioBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-full transition-colors">Radio</button>
             </div>
-            <div class="flex justify-center items-center gap-2">
-                <button id="togglePlaylistBtn" title="Toggle Playlist" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0"><i class="fas fa-bars"></i></button>
-                <label for="audioUpload" class="accent-bg cursor-pointer text-white font-bold py-3 px-6 rounded-full transition-colors inline-flex items-center gap-2 shadow-lg"><i class="fas fa-plus"></i><span>Add</span></label>
+            <div class="flex justify-center items-center gap-2 flex-wrap">
+                <button id="togglePlaylistBtn" title="Toggle Playlist" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <label for="audioUpload" class="accent-bg cursor-pointer text-white font-bold py-3 px-6 rounded-full transition-colors inline-flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-plus"></i>
+                    <span>Add</span>
+                </label>
                 <input type="file" id="audioUpload" accept="audio/*" multiple class="hidden">
-                <button id="toggleEqBtn" title="Toggle Equalizer" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0"><i class="fas fa-wave-square"></i></button>
-                <button id="changeBgBtn" title="Change Background" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0"><i class="fas fa-image"></i></button>
+                
+                <button id="openSearchBtn" title="Search Music" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                    <i class="fas fa-search"></i>
+                </button>
+
+                <button id="toggleEqBtn" title="Toggle Equalizer" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                    <i class="fas fa-wave-square"></i>
+                </button>
+                 <button id="changeBgBtn" title="Change Background" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                    <i class="fas fa-image"></i>
+                </button>
             </div>
         </header>
+
         <main id="playlistContainer" class="relative flex-grow p-4 overflow-y-auto pb-40 z-10 space-y-2">
-            <div id="initialMessage" class="flex flex-col items-center justify-center h-full text-gray-200 text-center"><i class="fas fa-upload text-6xl mb-4"></i><p class="text-lg">Upload your music</p><p class="text-sm">Your playlist is empty</p></div>
+            <div id="initialMessage" class="flex flex-col items-center justify-center h-full text-gray-200 text-center">
+                <i class="fas fa-upload text-6xl mb-4"></i>
+                <p class="text-lg">Upload your music</p>
+                <p class="text-sm">Your playlist is empty</p>
+            </div>
         </main>
-        <main id="radioContainer" class="hidden relative flex-grow p-4 overflow-y-auto pb-40 z-10 space-y-2"></main>
+        
+        <main id="radioContainer" class="hidden relative flex-grow p-4 overflow-y-auto pb-40 z-10 space-y-2">
+            </main>
+
         <footer id="player" class="relative fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-xl border-t border-white/10 p-3 max-w-md mx-auto rounded-t-2xl transition-transform duration-300 translate-y-full z-20">
             <div class="flex items-center">
                 <img id="currentTrackArt" src="https://placehold.co/64x64/1f2937/4b5563?text=Music" class="w-16 h-16 rounded-lg shadow-md mr-4 flex-shrink-0">
                 <div class="flex-grow w-0 min-w-0">
-                    <div id="currentTrackTitleWrapper" class="marquee-wrapper"><p id="currentTrackTitle" class="font-bold marquee-text">Select a Track</p></div>
+                    <div id="currentTrackTitleWrapper" class="marquee-wrapper">
+                         <p id="currentTrackTitle" class="font-bold marquee-text">Select a Track</p>
+                    </div>
                     <p id="currentTrackArtist" class="text-sm text-gray-400 truncate">Nothing is playing</p>
                 </div>
             </div>
             <div id="progressWrapper" class="flex items-center gap-2 text-xs text-gray-400 mt-3">
-                <span id="currentTime">0:00</span><input type="range" id="progressBar" value="0" max="100" class="flex-grow"><span id="totalTime">0:00</span>
+                <span id="currentTime">0:00</span>
+                <input type="range" id="progressBar" value="0" max="100" class="flex-grow">
+                <span id="totalTime">0:00</span>
             </div>
             <div class="flex items-center justify-center gap-6 mt-2">
                 <button id="prevBtn" class="text-gray-300 hover:text-white transition-colors text-2xl"><i class="fas fa-backward-step"></i></button>
-                <button id="playPauseBtn" class="accent-bg transition-colors w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg"><i id="playIcon" class="fas fa-play"></i><i id="pauseIcon" class="fas fa-pause hidden"></i></button>
+                <button id="playPauseBtn" class="accent-bg transition-colors w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg">
+                    <i id="playIcon" class="fas fa-play"></i>
+                    <i id="pauseIcon" class="fas fa-pause hidden"></i>
+                </button>
                 <button id="nextBtn" class="text-gray-300 hover:text-white transition-colors text-2xl"><i class="fas fa-forward-step"></i></button>
             </div>
             <div class="flex items-center gap-3 mt-4 px-6 pb-2">
-                <i class="fas fa-volume-low text-gray-400"></i><input type="range" id="volumeSlider" min="0" max="100" value="75" class="flex-grow"><i class="fas fa-volume-high text-gray-400"></i>
+                <i class="fas fa-volume-low text-gray-400"></i>
+                <input type="range" id="volumeSlider" min="0" max="100" value="75" class="flex-grow">
+                <i class="fas fa-volume-high text-gray-400"></i>
             </div>
             <audio id="audioPlayer" crossOrigin="anonymous"></audio>
         </footer>
     </div>
+    
     <div id="bgModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-sm max-h-full flex flex-col">
             <h2 class="text-lg font-bold p-4 border-b border-gray-700">Select Background</h2>
-            <div class="p-4 border-b border-gray-700"><label for="bgUpload" class="w-full text-center cursor-pointer bg-green-600 hover:bg-green-500 p-2 rounded-lg transition-colors block"><i class="fas fa-upload"></i> Upload from device</label><input type="file" id="bgUpload" accept="image/*" class="hidden"></div>
+            <div class="p-4 border-b border-gray-700">
+                <label for="bgUpload" class="w-full text-center cursor-pointer bg-green-600 hover:bg-green-500 p-2 rounded-lg transition-colors block">
+                    <i class="fas fa-upload"></i> Upload from device
+                </label>
+                <input type="file" id="bgUpload" accept="image/*" class="hidden">
+            </div>
             <div id="bgGrid" class="grid grid-cols-3 gap-2 p-4 overflow-y-auto"></div>
-            <div class="p-4 border-t border-gray-700"><button id="closeBgModal" class="w-full bg-red-600 hover:bg-red-500 p-2 rounded-lg transition-colors">Close</button></div>
+            <div class="p-4 border-t border-gray-700">
+                 <button id="closeBgModal" class="w-full bg-red-600 hover:bg-red-500 p-2 rounded-lg transition-colors">Close</button>
+            </div>
         </div>
     </div>
+
+    <div id="searchModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex flex-col p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-md mx-auto flex flex-col max-h-full">
+            <div class="p-4 border-b border-gray-700 flex gap-2">
+                <input type="text" id="searchInput" placeholder="Search song or artist..." class="bg-gray-800 text-white rounded px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <button id="performSearchBtn" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded transition-colors"><i class="fas fa-search"></i></button>
+            </div>
+            
+            <div id="searchLoader" class="loader mt-4"></div>
+            
+            <div id="searchResults" class="flex-grow overflow-y-auto p-2">
+                </div>
+
+            <div class="p-4 border-t border-gray-700">
+                <button id="closeSearchBtn" class="w-full bg-gray-700 hover:bg-gray-600 p-2 rounded-lg transition-colors text-white">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/particles.min.js"></script>
     <script src="js/main.js" type="module"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const openSearchBtn = document.getElementById('openSearchBtn');
+            const searchModal = document.getElementById('searchModal');
+            const closeSearchBtn = document.getElementById('closeSearchBtn');
+            const searchInput = document.getElementById('searchInput');
+            const performSearchBtn = document.getElementById('performSearchBtn');
+            const searchResults = document.getElementById('searchResults');
+            const searchLoader = document.getElementById('searchLoader');
+            const audioPlayer = document.getElementById('audioPlayer');
+
+            // API Configuration
+            const API_BASE = 'https://pipedapi.kavin.rocks'; // Alternative: https://api.piped.otter.sh
+
+            // Open Modal
+            openSearchBtn.addEventListener('click', () => {
+                searchModal.classList.remove('hidden');
+                searchInput.focus();
+            });
+
+            // Close Modal
+            closeSearchBtn.addEventListener('click', () => {
+                searchModal.classList.add('hidden');
+            });
+
+            // Trigger search on Enter key
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') doSearch();
+            });
+
+            performSearchBtn.addEventListener('click', doSearch);
+
+            async function doSearch() {
+                const query = searchInput.value.trim();
+                if (!query) return;
+
+                searchResults.innerHTML = '';
+                searchLoader.style.display = 'block';
+
+                try {
+                    const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&filter=music_songs`);
+                    const data = await response.json();
+                    
+                    searchLoader.style.display = 'none';
+
+                    if (!data.items || data.items.length === 0) {
+                        searchResults.innerHTML = '<p class="text-center text-gray-400 mt-4">No results found.</p>';
+                        return;
+                    }
+
+                    data.items.slice(0, 10).forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'search-result-item rounded-lg';
+                        const videoId = item.url.split('v=')[1];
+                        
+                        div.innerHTML = `
+                            <img src="${item.thumbnail}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
+                            <div class="overflow-hidden">
+                                <p class="font-bold text-sm truncate">${item.title}</p>
+                                <p class="text-xs text-gray-400 truncate">${item.uploaderName}</p>
+                            </div>
+                        `;
+
+                        div.onclick = () => playTrack(videoId, item.title, item.uploaderName, item.thumbnail);
+                        searchResults.appendChild(div);
+                    });
+
+                } catch (error) {
+                    console.error(error);
+                    searchLoader.style.display = 'none';
+                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Error fetching data.</p>';
+                }
+            }
+
+            async function playTrack(videoId, title, artist, art) {
+                searchLoader.style.display = 'block';
+                
+                try {
+                    const response = await fetch(`${API_BASE}/streams/${videoId}`);
+                    const data = await response.json();
+                    
+                    // Find audio stream (m4a usually works best for web)
+                    const audioStream = data.audioStreams.find(s => s.mimeType.includes('audio/mp4')) || data.audioStreams[0];
+
+                    if (audioStream) {
+                        // Update Player UI
+                        document.getElementById('currentTrackTitle').textContent = title;
+                        document.getElementById('currentTrackArtist').textContent = artist;
+                        document.getElementById('currentTrackArt').src = art;
+
+                        // Ensure player is visible (simulate playlist expansion logic if needed)
+                        const playerFooter = document.getElementById('player');
+                        if(playerFooter) playerFooter.style.transform = "translateY(0)";
+
+                        // Set Source and Play
+                        audioPlayer.src = audioStream.url;
+                        
+                        // Handle play promise
+                        const playPromise = audioPlayer.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => console.log('Autoplay prevented:', error));
+                        }
+
+                        // Close modal
+                        searchModal.classList.add('hidden');
+                        
+                        // Update Play/Pause Icon state manually since main.js might not catch external src change immediately
+                        document.getElementById('playIcon').classList.add('hidden');
+                        document.getElementById('pauseIcon').classList.remove('hidden');
+
+                    } else {
+                        alert('No audio stream found.');
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    alert('Error loading track.');
+                } finally {
+                    searchLoader.style.display = 'none';
+                }
+            }
+        });
+    </script>
 </body>
 </html>
