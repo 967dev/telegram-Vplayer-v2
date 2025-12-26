@@ -45,6 +45,23 @@ npx serve .
 3. Select the `main` branch as the source.
 4. Your player will be live at `https://<your-username>.github.io/player_repo/`.
 
+### 💻 Desktop App (Windows .EXE)
+To build a standalone Windows executable:
+1. Ensure you have [Node.js](https://nodejs.org/) installed.
+2. Open terminal in the project folder and run:
+   ```bash
+   npm install
+   ```
+3. To test the app:
+   ```bash
+   npm start
+   ```
+4. To build the `.exe` file:
+   ```bash
+   npm run package-win
+   ```
+   The executable will be generated in the `/dist` folder.
+
 ### Telegram WebApp Integration
 1. Open **@BotFather** on Telegram.
 2. Create a new bot or select an existing one.
