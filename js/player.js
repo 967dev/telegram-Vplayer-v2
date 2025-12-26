@@ -37,7 +37,7 @@ function animateVisualizer() {
         return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap DPR at 2.0 for performance on high-end mobile screens
     const logicalW = canvas.width / dpr;
     const logicalH = canvas.height / dpr;
 
@@ -119,10 +119,15 @@ function drawCircularVisualizer(primaryRgb, centerY, logicalW, logicalH) {
 }
 
 function drawWaveVisualizer(primaryRgb, baseline, logicalW, logicalH) {
-    const dataLen = Math.floor(dataArray.length * 0.5);
+    // Optimization: reduce segments on mobile
+    const isMobile = 'ontouchstart' in window;
+    const dataLen = isMobile ? 48 : 64;
     const sliceWidth = logicalW / (dataLen - 1);
 
-    const layers = [
+    const layers = isMobile ? [
+        { scale: 1.0, opacity: 0.8, width: 3, blur: 0 },
+        { scale: 1.3, opacity: 0.3, width: 1, blur: 0 }
+    ] : [
         { scale: 1.0, opacity: 0.8, width: 3, blur: 15 },
         { scale: 0.7, opacity: 0.4, width: 2, blur: 5 },
         { scale: 1.3, opacity: 0.2, width: 1, blur: 2 }
@@ -132,8 +137,12 @@ function drawWaveVisualizer(primaryRgb, baseline, logicalW, logicalH) {
         canvasCtx.beginPath();
         canvasCtx.strokeStyle = `rgba(${primaryRgb}, ${layer.opacity})`;
         canvasCtx.lineWidth = layer.width;
-        canvasCtx.shadowBlur = layer.blur;
-        canvasCtx.shadowColor = `rgba(${primaryRgb}, ${layer.opacity})`;
+
+        if (layer.blur > 0) {
+            canvasCtx.shadowBlur = layer.blur;
+            canvasCtx.shadowColor = `rgba(${primaryRgb}, ${layer.opacity})`;
+        }
+
         canvasCtx.lineCap = 'round';
         canvasCtx.lineJoin = 'round';
 

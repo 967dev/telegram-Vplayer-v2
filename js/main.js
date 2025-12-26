@@ -450,11 +450,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('resize', () => {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const width = ui.appContainer.clientWidth;
         const height = ui.appContainer.clientHeight;
 
-        // High DPI canvas scaling
         ui.canvas.width = width * dpr;
         ui.canvas.height = height * dpr;
         ui.canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
