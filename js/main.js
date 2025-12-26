@@ -10,13 +10,13 @@ let currentMode = 'playlist';
 let colorThief;
 
 const builtInBacks = [
-    'back/1.png', 
-    'back/11.jpg', 
-    'back/12.jpg', 
-    'back/13.jpg', 
-    'back/14.jpg', 
-    'back/36.jpg', 
-    'back/37.jpg', 
+    'back/1.png',
+    'back/11.jpg',
+    'back/12.jpg',
+    'back/13.jpg',
+    'back/14.jpg',
+    'back/36.jpg',
+    'back/37.jpg',
     'back/9.jpg',
     'back/44.gif',
     'back/45.gif',
@@ -26,18 +26,21 @@ const builtInBacks = [
 
 const builtInRadioStations = [
     { name: "Ambient Record", genre: "Ambient", streamUrl: "https://radiorecord.hostingradio.ru/ambient96.aacp" },
-    { name: "Lofi Box", genre: "Chill / Lofi Hip-Hop", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
-    { name: "EDM", genre: "Electronic Dance Music", streamUrl: "https://edmradio.stream.laut.fm/edmradio" },
-    { name: "Fuko Record", genre: "Hip-Hop / Rap", streamUrl: "https://radiorecord.hostingradio.ru/mf96.aacp" },
+    { name: "Lofi Box", genre: "Chill / Lofi", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
+    { name: "Synthwave", genre: "Electronic", streamUrl: "https://synthwave.stream.laut.fm/synthwave" },
+    { name: "Deep House", genre: "House", streamUrl: "https://radiorecord.hostingradio.ru/deep96.aacp" },
     { name: "Like POP", genre: "Pop Hits", streamUrl: "https://likeradiostream.com/likepop" },
-    { name: "Rock Record", genre: "Rock Anthems", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
-    { name: "Pirate Station Record", genre: "EDM", streamUrl: "https://radiorecord.hostingradio.ru/ps96.aacp" },
+    { name: "Rock Record", genre: "Rock", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
     { name: "Phonk Record", genre: "Phonk", streamUrl: "https://radiorecord.hostingradio.ru/phonk96.aacp" },
-    { name: "Rap Hits Record", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
+    { name: "Rap Hits", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
+    { name: "Record Black", genre: "Hip-Hop / Rap", streamUrl: "https://radiorecord.hostingradio.ru/black96.aacp" },
     { name: "DNB Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/drumhits96.aacp" },
-    { name: "DNB Liquid Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
-    { name: "LoFi Record", genre: "LoFi", streamUrl: "https://radiorecord.hostingradio.ru/lofi96.aacp" },
-    { name: "Hardstyle Record", genre: "Hardstyle", streamUrl: "https://radiorecord.hostingradio.ru/teo96.aacp" }
+    { name: "DNB Liquid", genre: "Liquid DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
+    { name: "Jazz Radio", genre: "Classic Jazz", streamUrl: "https://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3" },
+    { name: "Chillout", genre: "Chillout / Lounge", streamUrl: "https://radiorecord.hostingradio.ru/chil96.aacp" },
+    { name: "Techno Record", genre: "Techno", streamUrl: "https://radiorecord.hostingradio.ru/techno96.aacp" },
+    { name: "Future House", genre: "Future House", streamUrl: "https://radiorecord.hostingradio.ru/fut96.aacp" },
+    { name: "Vaporwave", genre: "Electronic / Vapor", streamUrl: "https://vaporwave.stream.laut.fm/vaporwave" }
 ];
 
 const particleThemes = [
@@ -50,24 +53,21 @@ const particleThemes = [
     { name: 'White', particle_color: '#ffffff', line_color: '#ff0000' }
 ];
 
-function setMode(mode) {
-    currentMode = mode;
-    localStorage.setItem('player_mode', mode);
-    if (mode === 'playlist') {
-        ui.playlistContainer.classList.remove('hidden');
-        ui.radioContainer.classList.add('hidden');
-        ui.modePlaylistBtn.classList.add('accent-bg');
-        ui.modePlaylistBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-        ui.modeRadioBtn.classList.remove('accent-bg');
-        ui.modeRadioBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
-    } else {
-        ui.playlistContainer.classList.add('hidden');
-        ui.radioContainer.classList.remove('hidden');
-        ui.modeRadioBtn.classList.add('accent-bg');
-        ui.modeRadioBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-        ui.modePlaylistBtn.classList.remove('accent-bg');
-        ui.modePlaylistBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
-    }
+function setMode(view) {
+    // view can be: 'playlist', 'main', 'radio'
+    document.body.classList.remove('state-playlist', 'state-main', 'state-radio');
+    document.body.classList.add(`state-${view}`);
+
+    // Update button highlights
+    ui.modePlaylistBtn.classList.toggle('accent-bg', view === 'playlist');
+    ui.modePlaylistBtn.classList.toggle('bg-gray-700', view !== 'playlist');
+    ui.modeRadioBtn.classList.toggle('accent-bg', view === 'radio');
+    ui.modeRadioBtn.classList.toggle('bg-gray-700', view !== 'radio');
+
+    localStorage.setItem('player_view', view);
+
+    // For internal logic, currentMode tracks what kind of item is playing
+    // but the view tracks what is visible.
     ui.updateActiveTrackUI(currentIndex, currentRadioIndex, isPlaying, currentMode);
 }
 
@@ -81,22 +81,23 @@ function setPlayingState(playing) {
 function playTrack(index) {
     if (index < 0 || index >= playlist.length) return;
     player.setupVisualizer();
+    currentMode = 'playlist'; // Set playback mode
     currentIndex = index;
     currentRadioIndex = -1;
     const trackInfo = playlist[currentIndex];
-    
+
     db.getTrackFileFromDB(trackInfo.id, (file) => {
         const audioURL = URL.createObjectURL(file);
         if (player.audioPlayer.src.startsWith('blob:')) URL.revokeObjectURL(player.audioPlayer.src);
-        
+
         player.audioPlayer.src = audioURL;
         ui.currentTrackTitle.textContent = trackInfo.fileName;
         ui.currentTrackArtist.textContent = "Local File";
         ui.currentTrackArt.src = "https://placehold.co/64x64/1f2937/4b5563?text=Music";
         ui.progressWrapper.classList.remove('hidden');
-        
+
         setTimeout(() => ui.applyMarqueeIfNeeded(ui.currentTrackTitle), 100);
-        
+
         player.audioPlayer.play().catch(e => console.error("Playback error:", e));
         ui.player.classList.remove('translate-y-full');
 
@@ -118,8 +119,9 @@ function playTrack(index) {
     });
 }
 
-function playRadioStation(index) {
+function playRadioStation(index, shouldSyncWheel = true) {
     if (index < 0 || index >= builtInRadioStations.length) return;
+    currentMode = 'radio'; // Set playback mode
     player.setupVisualizer();
     currentRadioIndex = index;
     currentIndex = -1;
@@ -130,9 +132,21 @@ function playRadioStation(index) {
     ui.currentTrackArtist.textContent = station.genre;
     ui.currentTrackArt.src = "https://placehold.co/64x64/1f2937/4b5563?text=Radio";
     ui.progressWrapper.classList.add('hidden');
-
-    player.audioPlayer.play().catch(e => console.error("Radio playback error:", e));
     ui.player.classList.remove('translate-y-full');
+
+    if (shouldSyncWheel) ui.syncRadioWheel(index);
+
+    player.audioPlayer.play().catch(e => {
+        if (e.name !== 'AbortError') {
+            ui.currentTrackArtist.textContent = "Station Unavailable";
+            console.error("Radio playback error:", e);
+        }
+    });
+
+    // Handle stream errors
+    player.audioPlayer.onerror = () => {
+        if (currentMode === 'radio') ui.currentTrackArtist.textContent = "Stream Error / Offline";
+    };
 
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -148,6 +162,9 @@ function playRadioStation(index) {
         navigator.mediaSession.setActionHandler('pause', () => player.audioPlayer.pause());
         navigator.mediaSession.setActionHandler('previoustrack', playPrev);
         navigator.mediaSession.setActionHandler('nexttrack', playNext);
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+            if (details.seekTime) player.audioPlayer.currentTime = details.seekTime;
+        });
     }
 }
 
@@ -181,7 +198,7 @@ function playPrev() {
 function deleteTrack(index) {
     if (index < 0 || index >= playlist.length) return;
     const trackIdToDelete = playlist[index].id;
-    
+
     db.deleteTrackFromDB(trackIdToDelete, () => {
         if (index === currentIndex) {
             player.audioPlayer.pause();
@@ -223,6 +240,9 @@ function deactivateParticlesBackground() {
     particlesContainer.style.display = 'none';
     particlesContainer.classList.remove('light-theme');
     ui.imageBg.style.display = 'block';
+    ui.videoBg.style.display = 'none';
+    ui.videoBg.pause();
+    ui.videoBg.src = "";
 }
 
 function activateParticlesDark() {
@@ -230,7 +250,7 @@ function activateParticlesDark() {
     const particlesContainer = document.getElementById('particles-js');
     particlesContainer.style.display = 'block';
     ui.imageBg.style.display = 'none';
-    
+
     const randomTheme = particleThemes[Math.floor(Math.random() * particleThemes.length)];
     let particleColor, lineColor;
     if (randomTheme.type === 'dynamic') {
@@ -260,6 +280,7 @@ function activateParticlesDark() {
         retina_detect: true
     });
     localStorage.setItem('background_image', 'particles_dark');
+    document.body.classList.add('no-blur');
     ui.bgModal.classList.add('hidden');
 }
 
@@ -291,6 +312,7 @@ function activateParticlesLight() {
         retina_detect: true
     });
     localStorage.setItem('background_image', 'particles_light');
+    document.body.classList.add('no-blur');
     ui.bgModal.classList.add('hidden');
 }
 
@@ -333,36 +355,69 @@ function updateAccentColor(imageDataUrl) {
     }
 }
 
-function selectBackground(imageUrl) {
+function selectBackground(url, type = 'image', fileToSave = null) {
     deactivateParticlesBackground();
-    localStorage.setItem('background_image', imageUrl);
-    ui.imageBg.style.backgroundImage = `url('${imageUrl}')`;
-    updateAccentColor(imageUrl);
+
+    if (fileToSave) {
+        localStorage.setItem('background_image', 'custom_db');
+        db.saveBackgroundToDB(fileToSave, type);
+    } else if (url && !url.startsWith('blob:')) {
+        // Only save to localStorage if it's a built-in path, not a blob URL from DB
+        localStorage.setItem('background_image', url);
+    }
+
+    localStorage.setItem('background_type', type);
+    document.body.classList.remove('no-blur');
+
+    if (type === 'video') {
+        ui.imageBg.style.display = 'none';
+        ui.videoBg.style.display = 'block';
+        if (ui.videoBg.src.startsWith('blob:')) URL.revokeObjectURL(ui.videoBg.src);
+        ui.videoBg.src = url;
+        ui.videoBg.play().catch(e => console.warn("Video play failed:", e));
+    } else {
+        ui.videoBg.style.display = 'none';
+        ui.videoBg.pause();
+        ui.imageBg.style.display = 'block';
+        ui.imageBg.style.backgroundImage = `url('${url}')`;
+        updateAccentColor(url);
+    }
     ui.bgModal.classList.add('hidden');
 }
 
 function loadSavedBackground() {
     const savedBg = localStorage.getItem('background_image');
+    const savedType = localStorage.getItem('background_type') || 'image';
+
     if (savedBg === 'particles_dark') {
         activateParticlesDark();
     } else if (savedBg === 'particles_light') {
         activateParticlesLight();
+    } else if (savedBg === 'custom_db') {
+        db.getBackgroundFromDB((res) => {
+            if (res && res.file) {
+                const url = URL.createObjectURL(res.file);
+                selectBackground(url, res.type);
+            } else {
+                // Fallback if DB is empty
+                const randomBg = builtInBacks[Math.floor(Math.random() * builtInBacks.length)];
+                selectBackground(randomBg, 'image');
+            }
+        });
     } else if (savedBg) {
-        deactivateParticlesBackground();
-        ui.imageBg.style.backgroundImage = `url('${savedBg}')`;
-        updateAccentColor(savedBg);
+        selectBackground(savedBg, savedType);
     } else {
         const randomBg = builtInBacks[Math.floor(Math.random() * builtInBacks.length)];
-        selectBackground(randomBg);
+        selectBackground(randomBg, 'image');
     }
 }
 
 function handleBgUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => selectBackground(e.target.result);
-    reader.readAsDataURL(file);
+    const isVideo = file.type.startsWith('video/');
+    const url = URL.createObjectURL(file);
+    selectBackground(url, isVideo ? 'video' : 'image', file);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -375,45 +430,133 @@ window.addEventListener('DOMContentLoaded', () => {
             ui.displayPlaylist(playlist, playTrack, deleteTrack);
             ui.updateActiveTrackUI(currentIndex, -1, false, currentMode);
         });
+        // Background must be loaded AFTER DB is ready
+        loadSavedBackground();
     });
-    
+
     ui.displayRadioStations(builtInRadioStations, playRadioStation);
-    loadSavedBackground();
-    const savedMode = localStorage.getItem('player_mode') || 'playlist';
-    setMode(savedMode);
-    player.audioPlayer.volume = ui.volumeSlider.value / 100;
+    const savedView = localStorage.getItem('player_view') || 'main';
+    setMode(savedView);
+
+    // Load saved volume or default to 50%
+    const savedVol = localStorage.getItem('player_volume') || 50;
+    ui.volumeSlider.value = savedVol;
+    player.audioPlayer.volume = savedVol / 100;
+
+    // Initialize Collapse UI
+    ui.initCollapseUI();
+    ui.playerCollapseBtn.addEventListener('click', () => {
+        ui.player.classList.toggle('collapsed');
+    });
 
     window.addEventListener('resize', () => {
-        ui.canvas.width = ui.appContainer.clientWidth;
-        ui.canvas.height = ui.appContainer.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const width = ui.appContainer.clientWidth;
+        const height = ui.appContainer.clientHeight;
+
+        // High DPI canvas scaling
+        ui.canvas.width = width * dpr;
+        ui.canvas.height = height * dpr;
+        ui.canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+
         ui.applyMarqueeToAll();
     });
     window.dispatchEvent(new Event('resize'));
 
-    window.addEventListener('mousemove', (e) => player.handleParallax(e, ui.imageBg));
-    window.addEventListener('deviceorientation', (e) => player.handleParallax(e, ui.imageBg));
-    
+    window.addEventListener('mousemove', (e) => {
+        const type = localStorage.getItem('background_type') || 'image';
+        if (type === 'image') player.handleParallax(e, ui.imageBg);
+    });
+    window.addEventListener('deviceorientation', (e) => {
+        const type = localStorage.getItem('background_type') || 'image';
+        if (type === 'image') player.handleParallax(e, ui.imageBg);
+    });
+
     ui.audioUpload.addEventListener('change', handleFiles);
     ui.toggleEqBtn.addEventListener('click', () => player.toggleEqualizer(ui.toggleEqBtn));
-    ui.togglePlaylistBtn.addEventListener('click', () => document.body.classList.toggle('playlist-collapsed'));
-    
+    ui.togglePlaylistBtn.addEventListener('click', () => {
+        const currentView = ['playlist', 'main', 'radio'].find(v => document.body.classList.contains(`state-${v}`));
+        setMode(currentView === 'playlist' ? 'main' : 'playlist');
+    });
+
     ui.changeBgBtn.addEventListener('click', openBgModalAndLoadImages);
-    
+
+
     ui.closeBgModal.addEventListener('click', () => ui.bgModal.classList.add('hidden'));
     ui.bgUpload.addEventListener('change', handleBgUpload);
-    
-    ui.modePlaylistBtn.addEventListener('click', () => setMode('playlist'));
-    ui.modeRadioBtn.addEventListener('click', () => setMode('radio'));
-    
+
+    ui.modePlaylistBtn.addEventListener('click', () => {
+        const isCurrent = document.body.classList.contains('state-playlist');
+        setMode(isCurrent ? 'main' : 'playlist');
+    });
+    ui.modeRadioBtn.addEventListener('click', () => {
+        const isCurrent = document.body.classList.contains('state-radio');
+        setMode(isCurrent ? 'main' : 'radio');
+    });
     ui.playPauseBtn.addEventListener('click', togglePlayPause);
     ui.nextBtn.addEventListener('click', playNext);
     ui.prevBtn.addEventListener('click', playPrev);
-    
+
+    // Swipe gestures for playlist (Touch & Mouse)
+    let startX = null;
+    let isDragging = false;
+    const swipeThreshold = 50;
+
+    // Touch events
+    window.addEventListener('touchstart', (e) => {
+        if (e.target.closest('#player')) {
+            startX = null;
+            return;
+        }
+        startX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+        if (startX === null) return;
+        const diff = e.changedTouches[0].screenX - startX;
+        handleSwipe(diff);
+        startX = null;
+    }, { passive: true });
+
+    // Mouse events (Drag-to-swipe)
+    window.addEventListener('mousedown', (e) => {
+        // Don't trigger on interactables or the FOOTER
+        if (e.target.closest('button, input, a, label, .track-item, #player')) {
+            isDragging = false;
+            startX = null;
+            return;
+        }
+        startX = e.screenX;
+        isDragging = true;
+    });
+
+    window.addEventListener('mouseup', (e) => {
+        if (!isDragging || startX === null) return;
+        const diff = e.screenX - startX;
+        handleSwipe(diff);
+        isDragging = false;
+        startX = null;
+    });
+
+    function handleSwipe(diff) {
+        const views = ['playlist', 'main', 'radio'];
+        const currentViewIndex = views.findIndex(v => document.body.classList.contains(`state-${v}`));
+
+        if (diff > swipeThreshold) {
+            // Swipe Right -> Go Left (towards playlist)
+            if (currentViewIndex > 0) setMode(views[currentViewIndex - 1]);
+        }
+        else if (diff < -swipeThreshold) {
+            // Swipe Left -> Go Right (towards radio)
+            if (currentViewIndex < views.length - 1) setMode(views[currentViewIndex + 1]);
+        }
+    }
+
     player.audioPlayer.addEventListener('timeupdate', () => ui.updateProgress(player.audioPlayer));
     player.audioPlayer.addEventListener('play', () => setPlayingState(true));
     player.audioPlayer.addEventListener('pause', () => setPlayingState(false));
     player.audioPlayer.addEventListener('ended', playNext);
-    
+
     ui.progressBar.addEventListener('input', () => player.setProgressOnAudio(ui.progressBar));
     ui.volumeSlider.addEventListener('input', () => player.setVolume(ui.volumeSlider));
 });

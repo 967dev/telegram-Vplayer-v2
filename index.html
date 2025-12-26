@@ -1,9 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Music Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sonic Glow | Premium Web Radio & Music Player</title>
+    <meta name="description"
+        content="Experience music like never before with Sonic Glow. Premium silk visualizers, global radio stations, and seamless local playback in a stunning glassmorphism interface.">
+    <meta name="keywords" content="music player, online radio, audio visualizer, web audio, pwa, sonic glow">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <!-- PWA and Icons -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/1f2937/8b5cf6?text=SG">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
@@ -13,132 +23,313 @@
             --primary-color-rgb: 139, 92, 246;
             --secondary-color-rgb: 219, 39, 119;
         }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
         body {
             font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
             background-color: #000;
             overflow: hidden;
             overscroll-behavior: none;
         }
+
         input[type=range] {
-            -webkit-appearance: none; appearance: none;
-            width: 100%; height: 5px; background: rgba(255,255,255,0.2);
-            border-radius: 5px; outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            outline: none;
         }
+
         input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 16px; height: 16px; background: #f3f4f6;
-            cursor: pointer; border-radius: 50%;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #f3f4f6;
+            cursor: pointer;
+            border-radius: 50%;
         }
+
         #image-bg {
-            position: fixed; top: -5%; left: -5%;
-            width: 110%; height: 110%;
+            position: fixed;
+            top: -5%;
+            left: -5%;
+            width: 110%;
+            height: 110%;
             z-index: 1;
-            background-size: cover; background-position: center center;
-            filter: blur(4px);
-            transition: transform 0.2s ease-out, background-image 0.5s ease, filter 0.5s ease-in-out;
-            background-color: #000;
-        }
-        #app::before {
-            content: ''; position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 2;
-        }
-        #visualizerCanvas {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 3; pointer-events: none;
-        }
-        .marquee-wrapper {
-            white-space: nowrap; overflow: hidden; width: 100%;
-        }
-        .is-scrolling .marquee-text {
-            display: inline-block; padding-left: 100%;
-            animation: marquee 12s linear infinite;
-        }
-        @keyframes marquee {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
-        main {
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 80px, black calc(100% - 80px), transparent 100%);
-            mask-image: linear-gradient(to bottom, transparent 0%, black 80px, black calc(100% - 80px), transparent 100%);
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .accent-bg {
-            background-color: rgb(var(--primary-color-rgb));
-            transition: background-color 0.5s ease;
-        }
-        .accent-bg:hover {
-            background-color: rgb(var(--primary-color-rgb)) !important;
-            filter: brightness(1.2);
-        }
-        .accent-bg-lite {
-            background-color: rgba(var(--primary-color-rgb), 0.3);
-            border-color: rgba(var(--primary-color-rgb), 0.5);
-        }
-        .accent-bg-lite-paused {
-            background-color: rgba(var(--primary-color-rgb), 0.2);
-            border-color: rgba(var(--primary-color-rgb), 0.4);
-        }
-        
-        /* Styles for collapsed state */
-        body.playlist-collapsed main#playlistContainer {
-            transform: translateX(-100%);
-            opacity: 0;
-            pointer-events: none;
-        }
-        body.playlist-collapsed main#radioContainer {
-            transform: translateX(100%);
-            opacity: 0;
-            pointer-events: none;
-        }
-        body.playlist-collapsed #image-bg {
-            filter: blur(0px);
+            background-size: cover;
+            top: -10vh;
+            left: -10vw;
+            width: 120vw;
+            height: 120vh;
+            z-index: 1;
+            background-size: cover;
+            background-position: center;
+            display: none;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
         }
 
-        /* Стиль для контейнера с частицами */
-        #particles-js {
+        #video-bg {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0; 
-            display: none; 
-        }
-        .video-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-
-        #bg-video {
             width: 100vw;
-            height: 56.25vw;
-            min-height: 100vh;
-            min-width: 177.77vh;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            height: 100vh;
+            z-index: 1;
+            object-fit: cover;
+            display: none;
+            border: none;
+            margin: 0;
+            padding: 0;
         }
 
-        .video-background::after {
+        #bg-blur-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+            pointer-events: none;
+            backdrop-filter: blur(12px);
+            background-color: rgba(0, 0, 0, 0.4);
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+
+        body.playlist-collapsed #bg-blur-overlay {
+            opacity: 0;
+        }
+
+        #app::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); 
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+
+        #visualizerCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: auto;
+            /* Changed to auto for clicks */
+        }
+
+        .marquee-wrapper {
+            white-space: nowrap;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .is-scrolling .marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 12s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        #mainContent {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+            overflow: visible;
+        }
+
+        .playlist-view,
+        .radio-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
+            will-change: transform, opacity;
+        }
+
+        .playlist-view {
+            padding: 130px 1rem 160px 1rem;
+            overflow-y: auto;
+        }
+
+        .radio-view {
+            overflow: visible;
+            /* Fade out items at the top and bottom boundaries to clear header and footer */
+            mask-image: linear-gradient(to bottom,
+                    transparent 120px,
+                    black 220px,
+                    black calc(100% - 200px),
+                    transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom,
+                    transparent 120px,
+                    black 220px,
+                    black calc(100% - 200px),
+                    transparent 100%);
+        }
+
+        .radio-stack {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* State Classes on Body */
+        body.state-main .playlist-view {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.state-main .radio-view {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.state-main #bg-blur-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.state-playlist .playlist-view {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        body.state-playlist .radio-view {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.state-playlist #bg-blur-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        body.state-radio .playlist-view {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.state-radio .radio-view {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        body.state-radio #bg-blur-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .radio-wheel-item {
+            position: absolute;
+            left: 50%;
+            width: 85%;
+            height: 75px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s, box-shadow 0.4s;
+            background: rgba(10, 10, 10, 0.85);
+            /* Slightly more solid */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            will-change: transform, opacity;
+            pointer-events: auto;
+            opacity: 0.4;
+            /* Stronger base opacity */
+        }
+
+        .accent-bg {
+            background-color: rgb(var(--primary-color-rgb));
+            transition: background-color 0.5s ease;
+        }
+
+        .accent-bg:hover {
+            background-color: rgb(var(--primary-color-rgb)) !important;
+            filter: brightness(1.2);
+        }
+
+        /* Strong Glow for active items */
+        .radio-wheel-item.accent-bg-lite,
+        .radio-wheel-item.accent-bg-lite-paused {
+            background-color: rgba(15, 15, 15, 0.9) !important;
+            border-color: rgba(var(--primary-color-rgb), 1) !important;
+            box-shadow: 0 0 30px -2px rgba(var(--primary-color-rgb), 0.8) !important;
+            opacity: 1 !important;
+            z-index: 200;
+        }
+
+        .accent-bg-lite-paused {
+            background-color: rgba(var(--primary-color-rgb), 0.2);
+            border-color: rgba(var(--primary-color-rgb), 0.4);
+        }
+
+        /* Styles for collapsed player state */
+        #player.collapsed {
+            transform: translateY(calc(100% - 75px)) !important;
+        }
+
+        #player.collapsed #playerCollapseBtn {
+            transform: scaleY(-1);
+        }
+
+        #player.collapsed #progressWrapper,
+        #player.collapsed #volumeSlider,
+        #player.collapsed .gap-6,
+        #player.collapsed .gap-3 {
+            display: none;
+        }
+
+        #player.collapsed .flex.items-center {
+            padding-bottom: 5px;
         }
 
         /* ----- STYLES FOR SEARCH ----- */
@@ -146,84 +337,182 @@
             display: flex;
             align-items: center;
             padding: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             cursor: pointer;
             transition: background 0.2s;
         }
+
         .search-result-item:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
-        .loader {
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top: 3px solid #fff;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin: 10px auto;
-            display: none;
+
+        /* Modern Radio Stack Styles */
+        /* Removed Redundant Container Styles */
+
+        /* Updated Hidden Rule */
+        .hidden-screen {
+            display: none !important;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .radio-stack {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            pointer-events: none;
+            /* Items inside handle events */
+        }
+
+        /* Corrected Radio Wheel Item Positioning */
+
+        .radio-wheel-item.active {
+            border-color: rgba(var(--primary-color-rgb), 0.5);
+            box-shadow: 0 0 25px -5px rgba(var(--primary-color-rgb), 0.6);
+            z-index: 200;
+        }
+
+        .radio-wheel-item:not(.active) {
+            z-index: 150;
+        }
+
+        /* Removed old collapsed styles */
+
+        #bg-blur-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 5;
+            pointer-events: none;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+            will-change: opacity, backdrop-filter;
+        }
+
+        body.no-blur #bg-blur-overlay {
+            backdrop-filter: none !important;
+        }
+
+        body.playlist-collapsed #bg-blur-overlay {
+            opacity: 0;
+        }
+
+        /* Styles for collapsed player state */
+        #player.collapsed {
+            transform: translateY(calc(100% - 70px)) !important;
+        }
+
+        #player.collapsed #playerCollapseBtn {
+            transform: translate(-50%, 15px) scaleY(-1);
+        }
+
+        #player.collapsed #progressWrapper,
+        #player.collapsed #volumeSlider,
+        #player.collapsed .gap-6,
+        #player.collapsed .gap-3 {
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #player.collapsed .flex.items-center {
+            padding-bottom: 5px;
+        }
+
+        #playerCollapseBtn {
+            transition: transform 0.3s ease, background 0.2s;
+        }
+
+        #app {
+            z-index: 10;
+        }
+
+        #bg-blur-overlay {
+            z-index: 5;
+        }
+
+        #image-bg,
+        #video-bg {
+            z-index: 1;
+        }
     </style>
 </head>
+
 <body class="text-white antialiased">
 
     <div id="image-bg"></div>
-    <div id="particles-js"></div>
-    
-    <div class="video-background" style="display: none;">
-        <video playsinline autoplay muted loop id="bg-video">
-            <source src="video/background.mp4" type="video/mp4">
-        </video>
-    </div>
+    <video id="video-bg" playsinline autoplay muted loop></video>
+    <div id="bg-blur-overlay"></div>
+    <div id="particles-js"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: none;"></div>
 
     <div id="app" class="relative flex flex-col h-screen max-w-md mx-auto bg-transparent shadow-2xl overflow-hidden">
         <canvas id="visualizerCanvas"></canvas>
-        <header class="relative p-4 bg-transparent z-10 text-center">
+        <header class="relative p-4 bg-transparent z-[500] text-center">
             <div class="flex justify-center items-center gap-2 mb-4">
-                <button id="modePlaylistBtn" class="accent-bg text-white font-bold py-2 px-5 rounded-full transition-colors">My Music</button>
-                <button id="modeRadioBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-full transition-colors">Radio</button>
+                <button id="modePlaylistBtn"
+                    class="accent-bg text-white font-bold py-2 px-5 rounded-full transition-colors">My Music</button>
+                <button id="modeRadioBtn"
+                    class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-full transition-colors">Radio</button>
             </div>
             <div class="flex justify-center items-center gap-2 flex-wrap">
-                <button id="togglePlaylistBtn" title="Toggle Playlist" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                <button id="togglePlaylistBtn" title="Toggle Playlist"
+                    class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
                     <i class="fas fa-bars"></i>
                 </button>
-                <label for="audioUpload" class="accent-bg cursor-pointer text-white font-bold py-3 px-6 rounded-full transition-colors inline-flex items-center gap-2 shadow-lg">
+                <label for="audioUpload"
+                    class="accent-bg cursor-pointer text-white font-bold py-3 px-6 rounded-full transition-colors inline-flex items-center gap-2 shadow-lg">
                     <i class="fas fa-plus"></i>
                     <span>Add</span>
                 </label>
                 <input type="file" id="audioUpload" accept="audio/*" multiple class="hidden">
-                
-                <button id="openSearchBtn" title="Search Music" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
-                    <i class="fas fa-search"></i>
-                </button>
 
-                <button id="toggleEqBtn" title="Toggle Equalizer" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                <button id="toggleEqBtn" title="Toggle Equalizer"
+                    class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
                     <i class="fas fa-wave-square"></i>
                 </button>
-                 <button id="changeBgBtn" title="Change Background" class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
+                <button id="changeBgBtn" title="Change Background"
+                    class="accent-bg text-white font-bold py-3 px-4 rounded-full transition-colors flex-shrink-0">
                     <i class="fas fa-image"></i>
                 </button>
             </div>
         </header>
 
-        <main id="playlistContainer" class="relative flex-grow p-4 overflow-y-auto pb-40 z-10 space-y-2">
-            <div id="initialMessage" class="flex flex-col items-center justify-center h-full text-gray-200 text-center">
-                <i class="fas fa-upload text-6xl mb-4"></i>
-                <p class="text-lg">Upload your music</p>
-                <p class="text-sm">Your playlist is empty</p>
+        <main id="mainContent">
+            <div id="playlistContainer" class="playlist-view">
+                <div id="initialMessage"
+                    class="flex flex-col items-center justify-center h-full text-gray-200 text-center pt-20">
+                    <i class="fas fa-upload text-6xl mb-4"></i>
+                    <p class="text-lg">Upload your music</p>
+                    <p class="text-sm">Your playlist is empty</p>
+                </div>
+            </div>
+
+            <div id="radioContainer" class="radio-view">
+                <!-- Stack will be injected here by JS -->
             </div>
         </main>
-        
-        <main id="radioContainer" class="hidden relative flex-grow p-4 overflow-y-auto pb-40 z-10 space-y-2">
-            </main>
 
-        <footer id="player" class="relative fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-xl border-t border-white/10 p-3 max-w-md mx-auto rounded-t-2xl transition-transform duration-300 translate-y-full z-20">
+        <main id="radioContainer" class="relative space-y-2">
+        </main>
+
+        <footer id="player"
+            class="fixed bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl border-t border-white/10 p-4 max-w-md mx-auto rounded-t-3xl transition-transform duration-500 ease-out translate-y-full z-30">
+            <!-- Collapse Button will be injected here by JS -->
             <div class="flex items-center">
-                <img id="currentTrackArt" src="https://placehold.co/64x64/1f2937/4b5563?text=Music" class="w-16 h-16 rounded-lg shadow-md mr-4 flex-shrink-0">
+                <img id="currentTrackArt" src="https://placehold.co/64x64/1f2937/4b5563?text=Music"
+                    class="w-16 h-16 rounded-lg shadow-md mr-4 flex-shrink-0">
                 <div class="flex-grow w-0 min-w-0">
                     <div id="currentTrackTitleWrapper" class="marquee-wrapper">
-                         <p id="currentTrackTitle" class="font-bold marquee-text">Select a Track</p>
+                        <p id="currentTrackTitle" class="font-bold marquee-text">Select a Track</p>
                     </div>
                     <p id="currentTrackArtist" class="text-sm text-gray-400 truncate">Nothing is playing</p>
                 </div>
@@ -234,12 +523,15 @@
                 <span id="totalTime">0:00</span>
             </div>
             <div class="flex items-center justify-center gap-6 mt-2">
-                <button id="prevBtn" class="text-gray-300 hover:text-white transition-colors text-2xl"><i class="fas fa-backward-step"></i></button>
-                <button id="playPauseBtn" class="accent-bg transition-colors w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg">
+                <button id="prevBtn" class="text-gray-300 hover:text-white transition-colors text-2xl"><i
+                        class="fas fa-backward-step"></i></button>
+                <button id="playPauseBtn"
+                    class="accent-bg transition-colors w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg">
                     <i id="playIcon" class="fas fa-play"></i>
                     <i id="pauseIcon" class="fas fa-pause hidden"></i>
                 </button>
-                <button id="nextBtn" class="text-gray-300 hover:text-white transition-colors text-2xl"><i class="fas fa-forward-step"></i></button>
+                <button id="nextBtn" class="text-gray-300 hover:text-white transition-colors text-2xl"><i
+                        class="fas fa-forward-step"></i></button>
             </div>
             <div class="flex items-center gap-3 mt-4 px-6 pb-2">
                 <i class="fas fa-volume-low text-gray-400"></i>
@@ -249,225 +541,28 @@
             <audio id="audioPlayer" crossOrigin="anonymous"></audio>
         </footer>
     </div>
-    
-    <div id="bgModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+
+    <div id="bgModal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-sm max-h-full flex flex-col">
             <h2 class="text-lg font-bold p-4 border-b border-gray-700">Select Background</h2>
             <div class="p-4 border-b border-gray-700">
-                <label for="bgUpload" class="w-full text-center cursor-pointer bg-green-600 hover:bg-green-500 p-2 rounded-lg transition-colors block">
+                <label for="bgUpload"
+                    class="w-full text-center cursor-pointer bg-green-600 hover:bg-green-500 p-2 rounded-lg transition-colors block">
                     <i class="fas fa-upload"></i> Upload from device
                 </label>
-                <input type="file" id="bgUpload" accept="image/*" class="hidden">
+                <input type="file" id="bgUpload" accept="image/*,video/*" class="hidden">
             </div>
             <div id="bgGrid" class="grid grid-cols-3 gap-2 p-4 overflow-y-auto"></div>
             <div class="p-4 border-t border-gray-700">
-                 <button id="closeBgModal" class="w-full bg-red-600 hover:bg-red-500 p-2 rounded-lg transition-colors">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="searchModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex flex-col p-4">
-        <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-md mx-auto flex flex-col max-h-full">
-            <div class="p-4 border-b border-gray-700 flex gap-2">
-                <input type="text" id="searchInput" placeholder="Search song or artist..." class="bg-gray-800 text-white rounded px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <button id="performSearchBtn" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded transition-colors"><i class="fas fa-search"></i></button>
-            </div>
-            
-            <div id="searchLoader" class="loader mt-4"></div>
-            
-            <div id="searchResults" class="flex-grow overflow-y-auto p-2">
-                </div>
-
-            <div class="p-4 border-t border-gray-700">
-                <button id="closeSearchBtn" class="w-full bg-gray-700 hover:bg-gray-600 p-2 rounded-lg transition-colors text-white">Close</button>
+                <button id="closeBgModal"
+                    class="w-full bg-red-600 hover:bg-red-500 p-2 rounded-lg transition-colors">Close</button>
             </div>
         </div>
     </div>
 
     <script src="js/particles.min.js"></script>
     <script src="js/main.js" type="module"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const openSearchBtn = document.getElementById('openSearchBtn');
-            const searchModal = document.getElementById('searchModal');
-            const closeSearchBtn = document.getElementById('closeSearchBtn');
-            const searchInput = document.getElementById('searchInput');
-            const performSearchBtn = document.getElementById('performSearchBtn');
-            const searchResults = document.getElementById('searchResults');
-            const searchLoader = document.getElementById('searchLoader');
-            const audioPlayer = document.getElementById('audioPlayer');
-
-            // --- СПИСОК СЕРВЕРОВ INVIDIOUS ---
-            // Мы будем стучаться к ним через ПРОКСИ.
-            const INVIDIOUS_INSTANCES = [
-                'https://invidious.projectsegfau.lt',
-                'https://inv.tux.pizza',
-                'https://invidious.fdn.fr',
-                'https://vid.puffyan.us',
-                'https://yt.artemislena.eu',
-                'https://invidious.drgns.space'
-            ];
-
-            // --- ПРОКСИ (Обязательно для GitHub Pages) ---
-            const PROXY_BASE = 'https://api.allorigins.win/raw?url=';
-
-            // --- UI HANDLERS ---
-            openSearchBtn.addEventListener('click', () => {
-                searchModal.classList.remove('hidden');
-                searchInput.focus();
-            });
-
-            closeSearchBtn.addEventListener('click', () => {
-                searchModal.classList.add('hidden');
-            });
-
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') doSearch();
-            });
-
-            performSearchBtn.addEventListener('click', doSearch);
-
-            // --- ФУНКЦИЯ ЗАПРОСА ЧЕРЕЗ ПРОКСИ ---
-            async function fetchInvidious(endpoint) {
-                for (const base of INVIDIOUS_INSTANCES) {
-                    try {
-                        const targetUrl = `${base}/api/v1${endpoint}`;
-                        // Оборачиваем запрос в прокси
-                        const proxyUrl = PROXY_BASE + encodeURIComponent(targetUrl);
-                        
-                        console.log(`Trying via Proxy: ${base}`);
-                        
-                        // Таймаут 5 секунд
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                        const response = await fetch(proxyUrl, {
-                            signal: controller.signal
-                        });
-                        clearTimeout(timeoutId);
-
-                        if (response.ok) {
-                            return await response.json();
-                        } else {
-                            throw new Error(`Status ${response.status}`);
-                        }
-                    } catch (err) {
-                        console.warn(`Proxy failed for ${base}: ${err.message}`);
-                        continue; // Пробуем следующий
-                    }
-                }
-                throw new Error('All Invidious instances failed via Proxy');
-            }
-
-            // --- ПОИСК ---
-            async function doSearch() {
-                const query = searchInput.value.trim();
-                if (!query) return;
-
-                searchResults.innerHTML = '';
-                searchLoader.style.display = 'block';
-
-                try {
-                    // type=video
-                    const data = await fetchInvidious(`/search?q=${encodeURIComponent(query)}&type=video`);
-                    
-                    searchLoader.style.display = 'none';
-
-                    if (!data || data.length === 0) {
-                        searchResults.innerHTML = '<p class="text-center text-gray-400 mt-4">No results found.</p>';
-                        return;
-                    }
-
-                    data.slice(0, 15).forEach(item => {
-                        const div = document.createElement('div');
-                        div.className = 'search-result-item rounded-lg';
-                        
-                        let thumb = 'https://placehold.co/64x64?text=Music';
-                        if (item.videoThumbnails && item.videoThumbnails.length > 0) {
-                            // Ищем картинку среднего качества
-                            thumb = item.videoThumbnails.find(t => t.quality === 'medium')?.url || item.videoThumbnails[0].url;
-                        }
-
-                        div.innerHTML = `
-                            <img src="${thumb}" alt="art" class="w-12 h-12 rounded object-cover mr-3">
-                            <div class="overflow-hidden">
-                                <p class="font-bold text-sm truncate">${item.title}</p>
-                                <p class="text-xs text-gray-400 truncate">${item.author}</p>
-                            </div>
-                        `;
-
-                        div.onclick = () => playTrack(item.videoId, item.title, item.author, thumb);
-                        searchResults.appendChild(div);
-                    });
-
-                } catch (error) {
-                    console.error(error);
-                    searchLoader.style.display = 'none';
-                    searchResults.innerHTML = '<p class="text-center text-red-400 mt-4">Proxy Error. Try again.</p>';
-                }
-            }
-
-            // --- ВОСПРОИЗВЕДЕНИЕ ---
-            async function playTrack(videoId, title, artist, art) {
-                searchLoader.style.display = 'block';
-                console.log(`Loading track details for: ${videoId}`);
-
-                try {
-                    // Получаем детали видео (тоже через прокси!)
-                    const videoData = await fetchInvidious(`/videos/${videoId}`);
-
-                    let audioUrl = null;
-
-                    // 1. Ищем m4a/aac аудио в adaptiveFormats (лучшее качество)
-                    if (videoData.adaptiveFormats) {
-                        const audioStream = videoData.adaptiveFormats
-                            .filter(f => f.type && f.type.includes('audio/mp4'))
-                            .sort((a, b) => parseInt(b.bitrate) - parseInt(a.bitrate))[0];
-                        
-                        if (audioStream) audioUrl = audioStream.url;
-                    }
-
-                    // 2. Запасной вариант
-                    if (!audioUrl && videoData.formatStreams) {
-                        const backupStream = videoData.formatStreams.find(f => f.type && f.type.includes('mp4')); // mp4 видео+аудио
-                        if (backupStream) audioUrl = backupStream.url;
-                    }
-
-                    if (audioUrl) {
-                        console.log("Audio URL found:", audioUrl);
-                        
-                        document.getElementById('currentTrackTitle').textContent = title;
-                        document.getElementById('currentTrackArtist').textContent = artist;
-                        document.getElementById('currentTrackArt').src = art;
-
-                        const playerFooter = document.getElementById('player');
-                        if(playerFooter) playerFooter.style.transform = "translateY(0)";
-
-                        // Ссылку на поток скармливаем напрямую (обычно googlevideo.com разрешает это)
-                        audioPlayer.src = audioUrl;
-                        
-                        const playPromise = audioPlayer.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => console.log('Autoplay blocked:', error));
-                        }
-
-                        searchModal.classList.add('hidden');
-                        document.getElementById('playIcon').classList.add('hidden');
-                        document.getElementById('pauseIcon').classList.remove('hidden');
-
-                    } else {
-                        alert('Could not find a playable audio stream.');
-                    }
-
-                } catch (error) {
-                    console.error(error);
-                    alert('Error loading track details via Proxy.');
-                } finally {
-                    searchLoader.style.display = 'none';
-                }
-            }
-        });
-    </script>
 </body>
+
 </html>
