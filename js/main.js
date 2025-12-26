@@ -424,6 +424,13 @@ window.addEventListener('DOMContentLoaded', () => {
     Telegram.WebApp.ready();
     colorThief = new ColorThief();
 
+    // Register Service Worker for PWA Store support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log('Service Worker Registered'))
+            .catch(err => console.error('Service Worker Registration Failed', err));
+    }
+
     db.initDB(() => {
         db.loadPlaylistFromDB((loadedPlaylist) => {
             playlist = loadedPlaylist;

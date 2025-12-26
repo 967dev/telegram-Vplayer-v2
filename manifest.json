@@ -2,7 +2,7 @@
   "name": "Sonic Glow | Premium Music Player",
   "short_name": "Sonic Glow",
   "description": "Next-Gen Radio & Music Player with Premium Visualizers. Experience music with stunning glassmorphism UI.",
-  "id": "/",
+  "id": "sonic-glow-pwa-id",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
