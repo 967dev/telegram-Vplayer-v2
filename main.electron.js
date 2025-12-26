@@ -3,18 +3,21 @@ const path = require('path');
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1200,
+        width: 450,
         height: 800,
-        minWidth: 400,
-        minHeight: 600,
+        minWidth: 320,
+        minHeight: 568,
         title: "Sonic Glow",
-        icon: path.join(__dirname, 'manifest.json'), // Electron will try to find icon, but manifest is just a placeholder here
+        icon: path.join(__dirname, 'manifest.json'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: true
         }
     });
+
+    // Force 9:16 aspect ratio (Portrait mode)
+    win.setAspectRatio(9 / 16);
 
     // Remove the menu bar for a cleaner "app" look
     win.setMenuBarVisibility(false);
