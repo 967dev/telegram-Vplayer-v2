@@ -8,6 +8,8 @@ let currentRadioIndex = -1;
 let isPlaying = false;
 let currentMode = 'playlist';
 let colorThief;
+let favoriteStations = JSON.parse(localStorage.getItem('fav_stations') || '[]');
+let showOnlyFavorites = false;
 
 const builtInBacks = [
     'back/1.png',
@@ -33,7 +35,7 @@ const builtInRadioStations = [
     { name: "Rock Record", genre: "Rock", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
     { name: "Phonk Record", genre: "Phonk", streamUrl: "https://radiorecord.hostingradio.ru/phonk96.aacp" },
     { name: "Rap Hits", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
-    { name: "Record Black", genre: "Hip-Hop / Rap", streamUrl: "https://radiorecord.hostingradio.ru/black96.aacp" },
+    { name: "Record Gold", genre: "Retro Hits", streamUrl: "https://radiorecord.hostingradio.ru/gold96.aacp" },
     { name: "DNB Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/drumhits96.aacp" },
     { name: "DNB Liquid", genre: "Liquid DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
     { name: "Jazz Radio", genre: "Classic Jazz", streamUrl: "https://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3" },
@@ -165,6 +167,79 @@ function playRadioStation(index, shouldSyncWheel = true) {
         navigator.mediaSession.setActionHandler('seekto', (details) => {
             if (details.seekTime) player.audioPlayer.currentTime = details.seekTime;
         });
+    }
+
+    updateFavoriteUI();
+}
+
+
+function updateFavoriteUI() {
+    if (currentMode === 'radio' && currentRadioIndex !== -1) {
+        const stations = showOnlyFavorites ? builtInRadioStations.filter(s => favoriteStations.includes(s.name)) : builtInRadioStations;
+        const station = stations[currentRadioIndex];
+        if (station) {
+            const isFav = favoriteStations.includes(station.name);
+            ui.footerFavBtn.classList.toggle('text-red-500', isFav);
+            ui.footerFavBtn.classList.toggle('text-white/50', !isFav);
+        }
+    }
+}
+
+function toggleFavorite() {
+    if (currentMode !== 'radio' || currentRadioIndex === -1) return;
+
+    const stations = showOnlyFavorites ? builtInRadioStations.filter(s => favoriteStations.includes(s.name)) : builtInRadioStations;
+    const station = stations[currentRadioIndex];
+    if (!station) return;
+
+    const idx = favoriteStations.indexOf(station.name);
+    if (idx > -1) {
+        favoriteStations.splice(idx, 1);
+    } else {
+        favoriteStations.push(station.name);
+    }
+
+    localStorage.setItem('fav_stations', JSON.stringify(favoriteStations));
+    updateFavoriteUI();
+
+    // Trigger heartbeat animation
+    ui.footerFavBtn.classList.remove('heart-pop');
+    void ui.footerFavBtn.offsetWidth; // Force reflow to restart animation
+    ui.footerFavBtn.classList.add('heart-pop');
+    setTimeout(() => ui.footerFavBtn.classList.remove('heart-pop'), 500);
+
+    // Instant sync for the wheel item (without re-rendering)
+    const isFavNow = favoriteStations.includes(station.name);
+    const radioItems = document.querySelectorAll('.radio-wheel-item');
+    radioItems.forEach(item => {
+        if (item.textContent.trim().startsWith(station.name)) {
+            const existingHeart = item.querySelector('.fa-heart');
+            if (isFavNow && !existingHeart) {
+                item.insertAdjacentHTML('afterbegin', '<i class="fas fa-heart text-[8px] text-red-500 absolute top-2 right-3"></i>');
+            } else if (!isFavNow && existingHeart) {
+                existingHeart.remove();
+            }
+        }
+    });
+
+    if (showOnlyFavorites) refreshRadioUI();
+}
+
+function refreshRadioUI() {
+    const stationsToShow = builtInRadioStations.map(s => ({
+        ...s,
+        isFavorite: favoriteStations.includes(s.name)
+    })).filter(s => !showOnlyFavorites || s.isFavorite);
+
+    ui.displayRadioStations(stationsToShow, playRadioStation);
+
+    // Sync current station if it's still in the filtered list
+    if (currentMode === 'radio' && currentRadioIndex !== -1) {
+        const currentStation = builtInRadioStations[currentRadioIndex];
+        const newIdx = stationsToShow.findIndex(s => s.name === currentStation.name);
+        if (newIdx > -1) {
+            ui.syncRadioWheel(newIdx);
+        }
     }
 }
 
@@ -445,6 +520,12 @@ window.addEventListener('DOMContentLoaded', () => {
     const savedView = localStorage.getItem('player_view') || 'main';
     setMode(savedView);
 
+    // Make footer visible but collapsed on entry
+    ui.player.classList.remove('translate-y-full');
+    ui.player.classList.add('collapsed');
+
+    refreshRadioUI();
+
     // Load saved volume or default to 50%
     const savedVol = localStorage.getItem('player_volume') || 50;
     ui.volumeSlider.value = savedVol;
@@ -486,6 +567,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     ui.changeBgBtn.addEventListener('click', openBgModalAndLoadImages);
+    ui.footerFavBtn.addEventListener('click', toggleFavorite);
+    ui.toggleFavoritesBtn.addEventListener('click', () => {
+        showOnlyFavorites = !showOnlyFavorites;
+        ui.toggleFavoritesBtn.classList.toggle('text-red-500', showOnlyFavorites);
+        refreshRadioUI();
+    });
 
 
     ui.closeBgModal.addEventListener('click', () => ui.bgModal.classList.add('hidden'));

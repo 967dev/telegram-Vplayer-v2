@@ -29,13 +29,15 @@ export const bgUpload = document.getElementById("bgUpload");
 export const togglePlaylistBtn = document.getElementById("togglePlaylistBtn");
 export const modePlaylistBtn = document.getElementById("modePlaylistBtn");
 export const modeRadioBtn = document.getElementById("modeRadioBtn");
+export const toggleFavoritesBtn = document.getElementById("toggleFavoritesBtn");
+export const footerFavBtn = document.getElementById("footerFavBtn");
 
 // Player Collapse Handle
 export const playerCollapseBtn = document.createElement('button');
 
 export function initCollapseUI() {
     playerCollapseBtn.id = 'playerCollapseBtn';
-    playerCollapseBtn.className = 'absolute -top-7 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-3xl border border-white/10 w-12 h-12 rounded-full flex items-center justify-center text-white/70 transition-all hover:text-white hover:bg-black z-40 shadow-2xl';
+    playerCollapseBtn.className = 'absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-3xl border border-white/10 w-12 h-12 rounded-full flex items-center justify-center text-white/70 transition-all hover:text-white hover:bg-black z-40 shadow-2xl';
     playerCollapseBtn.innerHTML = '<i class="fas fa-chevron-down text-lg"></i>';
     player.appendChild(playerCollapseBtn);
 }
@@ -151,8 +153,10 @@ export function displayRadioStations(stations, playCallback) {
     stations.forEach((station, index) => {
         const item = document.createElement('div');
         item.className = 'radio-wheel-item';
+        const favIcon = station.isFavorite ? '<i class="fas fa-heart text-[8px] text-red-500 absolute top-2 right-3"></i>' : '';
         item.style.outline = 'none';
         item.innerHTML = `
+            ${favIcon}
             <p class="font-bold text-base w-full px-2">${station.name}</p>
             <p class="text-[10px] opacity-50 uppercase tracking-widest">${station.genre}</p>
         `;
@@ -177,7 +181,7 @@ export function displayRadioStations(stations, playCallback) {
     };
 
     function updateStack() {
-        const centerY = 320;
+        const centerY = 360;
         const winH = window.innerHeight;
 
         // Optimization: Use cached array and for-loop for 60fps smoothness

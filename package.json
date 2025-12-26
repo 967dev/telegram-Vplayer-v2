@@ -1,11 +1,12 @@
 {
-    "name": "sonic-glow",
+    "name": "967player",
     "version": "1.0.0",
     "description": "Premium Music & Radio Player",
     "main": "main.electron.js",
     "scripts": {
         "start": "electron .",
-        "package-win": "electron-packager . SonicGlow --platform=win32 --arch=x64 --out=dist --overwrite"
+        "dev": "npx http-server ./ -p 8080",
+        "package-win": "electron-packager . 967player --platform=win32 --arch=x64 --out=dist --overwrite"
     },
     "author": "Sonic Glow Team",
     "license": "MIT",
