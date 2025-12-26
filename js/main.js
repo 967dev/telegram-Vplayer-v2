@@ -136,7 +136,15 @@ function playRadioStation(index, shouldSyncWheel = true) {
     ui.progressWrapper.classList.add('hidden');
     ui.player.classList.remove('translate-y-full');
 
-    if (shouldSyncWheel) ui.syncRadioWheel(index);
+    if (shouldSyncWheel) {
+        if (showOnlyFavorites) {
+            const stationsToShow = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
+            const viewIndex = stationsToShow.findIndex(s => s.name === station.name);
+            if (viewIndex > -1) ui.syncRadioWheel(viewIndex);
+        } else {
+            ui.syncRadioWheel(index);
+        }
+    }
 
     player.audioPlayer.play().catch(e => {
         if (e.name !== 'AbortError') {
@@ -175,8 +183,8 @@ function playRadioStation(index, shouldSyncWheel = true) {
 
 function updateFavoriteUI() {
     if (currentMode === 'radio' && currentRadioIndex !== -1) {
-        const stations = showOnlyFavorites ? builtInRadioStations.filter(s => favoriteStations.includes(s.name)) : builtInRadioStations;
-        const station = stations[currentRadioIndex];
+        // Find current playing station in global list
+        const station = builtInRadioStations[currentRadioIndex];
         if (station) {
             const isFav = favoriteStations.includes(station.name);
             ui.footerFavBtn.classList.toggle('text-red-500', isFav);
@@ -188,28 +196,52 @@ function updateFavoriteUI() {
 function toggleFavorite() {
     if (currentMode !== 'radio' || currentRadioIndex === -1) return;
 
-    const stations = showOnlyFavorites ? builtInRadioStations.filter(s => favoriteStations.includes(s.name)) : builtInRadioStations;
-    const station = stations[currentRadioIndex];
+    // Use global index to get the real station
+    const station = builtInRadioStations[currentRadioIndex];
     if (!station) return;
 
     const idx = favoriteStations.indexOf(station.name);
+    let isFavNow;
+
     if (idx > -1) {
+        // Remove from favorites
         favoriteStations.splice(idx, 1);
+        isFavNow = false;
     } else {
+        // Add to favorites
         favoriteStations.push(station.name);
+        isFavNow = true;
     }
 
     localStorage.setItem('fav_stations', JSON.stringify(favoriteStations));
-    updateFavoriteUI();
 
-    // Trigger heartbeat animation
+    // Visual Update Immediate
+    ui.footerFavBtn.classList.toggle('text-red-500', isFavNow);
+    ui.footerFavBtn.classList.toggle('text-white/50', !isFavNow);
+
+    // Heartbeat animation
     ui.footerFavBtn.classList.remove('heart-pop');
-    void ui.footerFavBtn.offsetWidth; // Force reflow to restart animation
+    void ui.footerFavBtn.offsetWidth;
     ui.footerFavBtn.classList.add('heart-pop');
     setTimeout(() => ui.footerFavBtn.classList.remove('heart-pop'), 500);
 
-    // Instant sync for the wheel item (without re-rendering)
-    const isFavNow = favoriteStations.includes(station.name);
+    // If we are in "Favorites Only" mode and we just removed the currently playing station
+    if (showOnlyFavorites && !isFavNow) {
+        const remaining = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
+        if (remaining.length > 0) {
+            // Switch to the first available favorite
+            const nextGlobal = builtInRadioStations.findIndex(s => s.name === remaining[0].name);
+            playRadioStation(nextGlobal);
+        } else {
+            // No favorites left? Just refresh UI to show empty state/all
+            refreshRadioUI();
+        }
+        return;
+    }
+
+    updateFavoriteUI(); // Sync other UI elements
+
+    // Instant sync for the wheel item (without re-rendering all)
     const radioItems = document.querySelectorAll('.radio-wheel-item');
     radioItems.forEach(item => {
         if (item.textContent.trim().startsWith(station.name)) {
@@ -231,14 +263,20 @@ function refreshRadioUI() {
         isFavorite: favoriteStations.includes(s.name)
     })).filter(s => !showOnlyFavorites || s.isFavorite);
 
-    ui.displayRadioStations(stationsToShow, playRadioStation);
+    ui.displayRadioStations(stationsToShow, (viewIndex) => {
+        // Map view index to global index
+        const clickedStation = stationsToShow[viewIndex];
+        const globalIndex = builtInRadioStations.findIndex(s => s.name === clickedStation.name);
+        playRadioStation(globalIndex);
+    });
 
-    // Sync current station if it's still in the filtered list
+    // Always ensure the active station is centered correctly in the view
     if (currentMode === 'radio' && currentRadioIndex !== -1) {
         const currentStation = builtInRadioStations[currentRadioIndex];
-        const newIdx = stationsToShow.findIndex(s => s.name === currentStation.name);
-        if (newIdx > -1) {
-            ui.syncRadioWheel(newIdx);
+        const viewIndex = stationsToShow.findIndex(s => s.name === currentStation.name);
+        if (viewIndex > -1) {
+            // Add a small delay to ensure DOM is ready if called rapidly
+            setTimeout(() => ui.syncRadioWheel(viewIndex), 10);
         }
     }
 }
@@ -258,7 +296,26 @@ function playNext() {
     if (currentMode === 'playlist') {
         playTrack((currentIndex + 1) % playlist.length || 0);
     } else {
-        playRadioStation((currentRadioIndex + 1) % builtInRadioStations.length || 0);
+        let nextIndex;
+        if (showOnlyFavorites) {
+            // Logic for favorites navigation
+            const stationsToShow = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
+            if (stationsToShow.length === 0) return;
+
+            const currentStation = builtInRadioStations[currentRadioIndex];
+            const currentFavIndex = stationsToShow.findIndex(s => s.name === currentStation.name);
+
+            // If current station is not in favorites (conceptually impossible if filtered, but safe), start from 0
+            // Otherwise next in favorites list
+            const nextFavIndex = (currentFavIndex + 1) % stationsToShow.length;
+            const nextStation = stationsToShow[nextFavIndex];
+
+            nextIndex = builtInRadioStations.findIndex(s => s.name === nextStation.name);
+        } else {
+            // Logic for normal navigation
+            nextIndex = (currentRadioIndex + 1) % builtInRadioStations.length || 0;
+        }
+        playRadioStation(nextIndex);
     }
 }
 
@@ -266,7 +323,25 @@ function playPrev() {
     if (currentMode === 'playlist') {
         playTrack((currentIndex - 1 + playlist.length) % playlist.length || 0);
     } else {
-        playRadioStation((currentRadioIndex - 1 + builtInRadioStations.length) % builtInRadioStations.length || 0);
+        let prevIndex;
+        if (showOnlyFavorites) {
+            // Logic for favorites navigation
+            const stationsToShow = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
+            if (stationsToShow.length === 0) return;
+
+            const currentStation = builtInRadioStations[currentRadioIndex];
+            const currentFavIndex = stationsToShow.findIndex(s => s.name === currentStation.name);
+
+            // Previous in favorites list
+            const prevFavIndex = (currentFavIndex - 1 + stationsToShow.length) % stationsToShow.length;
+            const prevStation = stationsToShow[prevFavIndex];
+
+            prevIndex = builtInRadioStations.findIndex(s => s.name === prevStation.name);
+        } else {
+            // Logic for normal navigation
+            prevIndex = (currentRadioIndex - 1 + builtInRadioStations.length) % builtInRadioStations.length || 0;
+        }
+        playRadioStation(prevIndex);
     }
 }
 
@@ -563,7 +638,8 @@ window.addEventListener('DOMContentLoaded', () => {
     ui.toggleEqBtn.addEventListener('click', () => player.toggleEqualizer(ui.toggleEqBtn));
     ui.togglePlaylistBtn.addEventListener('click', () => {
         const currentView = ['playlist', 'main', 'radio'].find(v => document.body.classList.contains(`state-${v}`));
-        setMode(currentView === 'playlist' ? 'main' : 'playlist');
+        let nextMode = currentView === 'playlist' ? 'main' : 'playlist';
+        setMode(nextMode);
     });
 
     ui.changeBgBtn.addEventListener('click', openBgModalAndLoadImages);
