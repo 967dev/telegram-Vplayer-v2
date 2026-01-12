@@ -11,6 +11,21 @@ let colorThief;
 let favoriteStations = JSON.parse(localStorage.getItem('fav_stations') || '[]');
 let showOnlyFavorites = false;
 
+const isElectron = /Electron/.test(navigator.userAgent);
+
+function getFilteredRadioList() {
+    return builtInRadioStations
+        .filter(s => !s.electronOnly || isElectron)
+        .filter(s => !showOnlyFavorites || favoriteStations.includes(s.name));
+}
+
+function getRadioViewIndex() {
+    if (currentRadioIndex === -1) return -1;
+    const visibleList = getFilteredRadioList();
+    const currentStation = builtInRadioStations[currentRadioIndex];
+    return visibleList.findIndex(s => s.name === currentStation?.name);
+}
+
 const builtInBacks = [
     'back/1.png',
     'back/11.jpg',
@@ -30,19 +45,21 @@ const builtInRadioStations = [
     { name: "Ambient Record", genre: "Ambient", streamUrl: "https://radiorecord.hostingradio.ru/ambient96.aacp" },
     { name: "Lofi Box", genre: "Chill / Lofi", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
     { name: "Synthwave", genre: "Electronic", streamUrl: "https://synthwave.stream.laut.fm/synthwave" },
+    { name: "Record Mashup", genre: "Mashup", streamUrl: "https://radiorecord.hostingradio.ru/mix96.aacp" },
+    { name: "Fantasy Radio", genre: "Medieval / Folk", streamUrl: "https://stream.laut.fm/fantasyradio", electronOnly: true },
     { name: "Deep House", genre: "House", streamUrl: "https://radiorecord.hostingradio.ru/deep96.aacp" },
     { name: "Like POP", genre: "Pop Hits", streamUrl: "https://likeradiostream.com/likepop" },
     { name: "Rock Record", genre: "Rock", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
     { name: "Phonk Record", genre: "Phonk", streamUrl: "https://radiorecord.hostingradio.ru/phonk96.aacp" },
     { name: "Rap Hits", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
-    { name: "Record Gold", genre: "Retro Hits", streamUrl: "https://radiorecord.hostingradio.ru/gold96.aacp" },
+    { name: "Gothic Radio", genre: "Ethnic / Metal", streamUrl: "https://pub0202.101.ru:8443/stream/pro/aac/64/405" },
+    { name: "DFM Rap", genre: "Rap / Hip-Hop", streamUrl: "https://dfm-dfmrap.hostingradio.ru/dfmrap96.aacp" },
     { name: "DNB Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/drumhits96.aacp" },
     { name: "DNB Liquid", genre: "Liquid DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
     { name: "Jazz Radio", genre: "Classic Jazz", streamUrl: "https://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3" },
     { name: "Chillout", genre: "Chillout / Lounge", streamUrl: "https://radiorecord.hostingradio.ru/chil96.aacp" },
     { name: "Techno Record", genre: "Techno", streamUrl: "https://radiorecord.hostingradio.ru/techno96.aacp" },
-    { name: "Future House", genre: "Future House", streamUrl: "https://radiorecord.hostingradio.ru/fut96.aacp" },
-    { name: "Vaporwave", genre: "Electronic / Vapor", streamUrl: "https://vaporwave.stream.laut.fm/vaporwave" }
+    { name: "Future House", genre: "Future House", streamUrl: "https://radiorecord.hostingradio.ru/fut96.aacp" }
 ];
 
 const particleThemes = [
@@ -70,14 +87,14 @@ function setMode(view) {
 
     // For internal logic, currentMode tracks what kind of item is playing
     // but the view tracks what is visible.
-    ui.updateActiveTrackUI(currentIndex, currentRadioIndex, isPlaying, currentMode);
+    ui.updateActiveTrackUI(currentIndex, getRadioViewIndex(), isPlaying, currentMode);
 }
 
 function setPlayingState(playing) {
     isPlaying = playing;
     ui.playIcon.classList.toggle('hidden', isPlaying);
     ui.pauseIcon.classList.toggle('hidden', !isPlaying);
-    ui.updateActiveTrackUI(currentIndex, currentRadioIndex, isPlaying, currentMode);
+    ui.updateActiveTrackUI(currentIndex, getRadioViewIndex(), isPlaying, currentMode);
 }
 
 function playTrack(index) {
@@ -137,13 +154,9 @@ function playRadioStation(index, shouldSyncWheel = true) {
     ui.player.classList.remove('translate-y-full');
 
     if (shouldSyncWheel) {
-        if (showOnlyFavorites) {
-            const stationsToShow = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
-            const viewIndex = stationsToShow.findIndex(s => s.name === station.name);
-            if (viewIndex > -1) ui.syncRadioWheel(viewIndex);
-        } else {
-            ui.syncRadioWheel(index);
-        }
+        const visibleList = getFilteredRadioList();
+        const viewIndex = visibleList.findIndex(s => s.name === station.name);
+        if (viewIndex > -1) ui.syncRadioWheel(viewIndex);
     }
 
     player.audioPlayer.play().catch(e => {
@@ -258,10 +271,10 @@ function toggleFavorite() {
 }
 
 function refreshRadioUI() {
-    const stationsToShow = builtInRadioStations.map(s => ({
+    const stationsToShow = getFilteredRadioList().map(s => ({
         ...s,
         isFavorite: favoriteStations.includes(s.name)
-    })).filter(s => !showOnlyFavorites || s.isFavorite);
+    }));
 
     ui.displayRadioStations(stationsToShow, (viewIndex) => {
         // Map view index to global index
@@ -296,26 +309,17 @@ function playNext() {
     if (currentMode === 'playlist') {
         playTrack((currentIndex + 1) % playlist.length || 0);
     } else {
-        let nextIndex;
-        if (showOnlyFavorites) {
-            // Logic for favorites navigation
-            const stationsToShow = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
-            if (stationsToShow.length === 0) return;
+        const visibleList = getFilteredRadioList();
+        if (visibleList.length === 0) return;
 
-            const currentStation = builtInRadioStations[currentRadioIndex];
-            const currentFavIndex = stationsToShow.findIndex(s => s.name === currentStation.name);
+        const currentStation = builtInRadioStations[currentRadioIndex];
+        const currentViewIndex = visibleList.findIndex(s => s.name === currentStation?.name);
 
-            // If current station is not in favorites (conceptually impossible if filtered, but safe), start from 0
-            // Otherwise next in favorites list
-            const nextFavIndex = (currentFavIndex + 1) % stationsToShow.length;
-            const nextStation = stationsToShow[nextFavIndex];
+        const nextViewIndex = (currentViewIndex + 1) % visibleList.length;
+        const nextStation = visibleList[nextViewIndex];
+        const nextGlobalIndex = builtInRadioStations.findIndex(s => s.name === nextStation.name);
 
-            nextIndex = builtInRadioStations.findIndex(s => s.name === nextStation.name);
-        } else {
-            // Logic for normal navigation
-            nextIndex = (currentRadioIndex + 1) % builtInRadioStations.length || 0;
-        }
-        playRadioStation(nextIndex);
+        playRadioStation(nextGlobalIndex);
     }
 }
 
@@ -323,25 +327,17 @@ function playPrev() {
     if (currentMode === 'playlist') {
         playTrack((currentIndex - 1 + playlist.length) % playlist.length || 0);
     } else {
-        let prevIndex;
-        if (showOnlyFavorites) {
-            // Logic for favorites navigation
-            const stationsToShow = builtInRadioStations.filter(s => favoriteStations.includes(s.name));
-            if (stationsToShow.length === 0) return;
+        const visibleList = getFilteredRadioList();
+        if (visibleList.length === 0) return;
 
-            const currentStation = builtInRadioStations[currentRadioIndex];
-            const currentFavIndex = stationsToShow.findIndex(s => s.name === currentStation.name);
+        const currentStation = builtInRadioStations[currentRadioIndex];
+        const currentViewIndex = visibleList.findIndex(s => s.name === currentStation?.name);
 
-            // Previous in favorites list
-            const prevFavIndex = (currentFavIndex - 1 + stationsToShow.length) % stationsToShow.length;
-            const prevStation = stationsToShow[prevFavIndex];
+        const prevViewIndex = (currentViewIndex - 1 + visibleList.length) % visibleList.length;
+        const nextStation = visibleList[prevViewIndex];
+        const nextGlobalIndex = builtInRadioStations.findIndex(s => s.name === nextStation.name);
 
-            prevIndex = builtInRadioStations.findIndex(s => s.name === prevStation.name);
-        } else {
-            // Logic for normal navigation
-            prevIndex = (currentRadioIndex - 1 + builtInRadioStations.length) % builtInRadioStations.length || 0;
-        }
-        playRadioStation(prevIndex);
+        playRadioStation(nextGlobalIndex);
     }
 }
 
@@ -361,7 +357,7 @@ function deleteTrack(index) {
         }
         playlist.splice(index, 1);
         ui.displayPlaylist(playlist, playTrack, deleteTrack);
-        ui.updateActiveTrackUI(currentIndex, -1, isPlaying, currentMode);
+        ui.updateActiveTrackUI(currentIndex, getRadioViewIndex(), isPlaying, currentMode);
     });
 }
 
@@ -585,13 +581,12 @@ window.addEventListener('DOMContentLoaded', () => {
         db.loadPlaylistFromDB((loadedPlaylist) => {
             playlist = loadedPlaylist;
             ui.displayPlaylist(playlist, playTrack, deleteTrack);
-            ui.updateActiveTrackUI(currentIndex, -1, false, currentMode);
+            ui.updateActiveTrackUI(currentIndex, getRadioViewIndex(), false, currentMode);
         });
         // Background must be loaded AFTER DB is ready
         loadSavedBackground();
     });
 
-    ui.displayRadioStations(builtInRadioStations, playRadioStation);
     const savedView = localStorage.getItem('player_view') || 'main';
     setMode(savedView);
 
