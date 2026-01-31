@@ -2,7 +2,7 @@ import { canvas, player as playerElement } from './ui.js';
 
 const audioPlayer = document.getElementById('audioPlayer');
 let canvasCtx;
-let audioContext, analyser, sourceNode, dataArray, animationFrameId;
+let audioContext, analyser, gainNode, sourceNode, dataArray, animationFrameId;
 let equalizerEnabled = true;
 let visualizerMode = 'wave'; // 'wave', 'circular', 'bars'
 let cachedPrimaryRGB = '139, 92, 246';
@@ -21,8 +21,13 @@ function setupVisualizer() {
         sourceNode = audioContext.createMediaElementSource(audioPlayer);
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 512;
+
+        gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.95; // Provide 5% headroom to prevent clipping
+
         sourceNode.connect(analyser);
-        analyser.connect(audioContext.destination);
+        analyser.connect(gainNode);
+        gainNode.connect(audioContext.destination);
         dataArray = new Uint8Array(analyser.frequencyBinCount);
         animateVisualizer();
     } catch (e) {

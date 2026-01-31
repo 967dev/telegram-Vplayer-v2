@@ -81,7 +81,7 @@
             background-position: center;
             display: none;
             transition: transform 0.1s ease-out;
-            will-change: transform;
+            will-change: transform, filter;
         }
 
         #video-bg {
@@ -96,6 +96,7 @@
             border: none;
             margin: 0;
             padding: 0;
+            will-change: transform, filter;
         }
 
         #bg-blur-overlay {
@@ -619,6 +620,17 @@
                 <button id="closeBgModal"
                     class="w-full bg-red-600 hover:bg-red-500 p-2 rounded-lg transition-colors">Close</button>
             </div>
+        </div>
+    </div>
+
+    <div id="updateModal"
+        class="fixed bottom-4 left-4 right-4 bg-gray-900 border border-blue-500 rounded-lg shadow-2xl p-4 z-[1000] hidden">
+        <p id="updateMessage" class="text-sm font-semibold mb-2">New version is available!</p>
+        <div id="updateActions" class="flex justify-end gap-2">
+            <button id="closeUpdateModal" class="text-xs text-gray-400 hover:text-white px-2 py-1">Dismiss</button>
+            <button id="restartBtn"
+                class="bg-blue-600 hover:bg-blue-500 text-xs text-white px-3 py-1 rounded hidden">Restart &
+                Install</button>
         </div>
     </div>
 

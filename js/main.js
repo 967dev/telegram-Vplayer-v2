@@ -750,4 +750,35 @@ window.addEventListener('DOMContentLoaded', () => {
 
     ui.progressBar.addEventListener('input', () => player.setProgressOnAudio(ui.progressBar));
     ui.volumeSlider.addEventListener('input', () => player.setVolume(ui.volumeSlider));
+
+    // Auto-update UI Listeners
+    if (window.electronAPI) {
+        const updateModal = document.getElementById('updateModal');
+        const updateMessage = document.getElementById('updateMessage');
+        const restartBtn = document.getElementById('restartBtn');
+        const closeUpdateModal = document.getElementById('closeUpdateModal');
+
+        window.electronAPI.onUpdateAvailable(() => {
+            updateMessage.textContent = "New update available. Downloading...";
+            updateModal.classList.remove('hidden');
+        });
+
+        window.electronAPI.onUpdateDownloaded(() => {
+            updateMessage.textContent = "Update downloaded. Ready to install!";
+            restartBtn.classList.remove('hidden');
+            updateModal.classList.remove('hidden');
+        });
+
+        window.electronAPI.onUpdateError((msg) => {
+            console.warn('Update error:', msg);
+        });
+
+        restartBtn.addEventListener('click', () => {
+            window.electronAPI.restartApp();
+        });
+
+        closeUpdateModal.addEventListener('click', () => {
+            updateModal.classList.add('hidden');
+        });
+    }
 });
