@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sonic Glow | Premium Web Radio & Music Player</title>
+    <title>967player</title>
     <meta name="description"
         content="Experience music like never before with Sonic Glow. Premium silk visualizers, global radio stations, and seamless local playback in a stunning glassmorphism interface.">
     <meta name="keywords" content="music player, online radio, audio visualizer, web audio, pwa, sonic glow">
@@ -469,6 +469,23 @@
         #video-bg {
             z-index: 1;
         }
+
+        #footerFavBtn {
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.4);
+            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 1));
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0.8;
+        }
+
+        #footerFavBtn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        #footerFavBtn.text-red-500 {
+            opacity: 1;
+            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+        }
     </style>
 </head>
 
@@ -585,6 +602,17 @@
                     <i class="fas fa-upload"></i> Upload from device
                 </label>
                 <input type="file" id="bgUpload" accept="image/*,video/*" class="hidden">
+            </div>
+            <div class="p-4 border-b border-gray-700">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <span class="text-sm font-semibold">Pulse</span>
+                    <div class="relative inline-block w-10 h-6 transition duration-200 ease-in-out">
+                        <input type="checkbox" id="pulseToggle" class="sr-only peer">
+                        <div
+                            class="w-10 h-6 bg-gray-700 rounded-full peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full">
+                        </div>
+                    </div>
+                </label>
             </div>
             <div id="bgGrid" class="grid grid-cols-3 gap-2 p-4 overflow-y-auto"></div>
             <div class="p-4 border-t border-gray-700">

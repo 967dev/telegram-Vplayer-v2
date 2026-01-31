@@ -31,6 +31,7 @@ export const modePlaylistBtn = document.getElementById("modePlaylistBtn");
 export const modeRadioBtn = document.getElementById("modeRadioBtn");
 export const toggleFavoritesBtn = document.getElementById("toggleFavoritesBtn");
 export const footerFavBtn = document.getElementById("footerFavBtn");
+export const pulseToggle = document.getElementById("pulseToggle");
 
 // Player Collapse Handle
 export const playerCollapseBtn = document.createElement('button');
@@ -132,8 +133,8 @@ export function displayPlaylist(tracks, onPlay, onDelete) {
 let radioWheelUpdateFn = null;
 let radioWheelItemHeight = 90;
 
-export function syncRadioWheel(index) {
-    if (radioWheelUpdateFn) radioWheelUpdateFn(index);
+export function syncRadioWheel(index, animate = true, enableSound = true) {
+    if (radioWheelUpdateFn) radioWheelUpdateFn(index, animate, enableSound);
 }
 
 export function displayRadioStations(stations, playCallback) {
@@ -169,18 +170,18 @@ export function displayRadioStations(stations, playCallback) {
         itemsArray.push(item);
     });
 
-    radioWheelUpdateFn = (index, animate = true) => {
+    radioWheelUpdateFn = (index, animate = true, enableSound = true) => {
         const oldIndex = activeIndex;
         activeIndex = index;
         offset = -index * itemHeight;
         if (!animate) stack.style.transition = 'none';
-        updateStack();
+        updateStack(enableSound);
         // Force tick if index changed but updateStack logic didn't catch it due to direct assignment
-        if (oldIndex !== index) playTickEffect();
+        if (oldIndex !== index && enableSound) playTickEffect();
         if (!animate) setTimeout(() => stack.style.transition = '', 0);
     };
 
-    function updateStack() {
+    function updateStack(enableSound = true) {
         const centerY = 360;
         const winH = window.innerHeight;
 
@@ -221,7 +222,7 @@ export function displayRadioStations(stations, playCallback) {
             }
 
             if (distFromCenter < itemHeight / 2) {
-                if (activeIndex !== i) playTickEffect();
+                if (activeIndex !== i && enableSound) playTickEffect();
                 activeIndex = i;
                 item.classList.add('active');
             } else {

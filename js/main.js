@@ -138,7 +138,7 @@ function playTrack(index) {
     });
 }
 
-function playRadioStation(index, shouldSyncWheel = true) {
+function playRadioStation(index, shouldSyncWheel = true, autoPlay = true, enableSound = true) {
     if (index < 0 || index >= builtInRadioStations.length) return;
     currentMode = 'radio'; // Set playback mode
     player.setupVisualizer();
@@ -156,15 +156,19 @@ function playRadioStation(index, shouldSyncWheel = true) {
     if (shouldSyncWheel) {
         const visibleList = getFilteredRadioList();
         const viewIndex = visibleList.findIndex(s => s.name === station.name);
-        if (viewIndex > -1) ui.syncRadioWheel(viewIndex);
+        if (viewIndex > -1) ui.syncRadioWheel(viewIndex, true, enableSound);
     }
 
-    player.audioPlayer.play().catch(e => {
-        if (e.name !== 'AbortError') {
-            ui.currentTrackArtist.textContent = "Station Unavailable";
-            console.error("Radio playback error:", e);
-        }
-    });
+    if (autoPlay) {
+        player.audioPlayer.play().catch(e => {
+            if (e.name !== 'AbortError') {
+                ui.currentTrackArtist.textContent = "Station Unavailable";
+                console.error("Radio playback error:", e);
+            }
+        });
+    } else {
+        setPlayingState(false);
+    }
 
     // Handle stream errors
     player.audioPlayer.onerror = () => {
@@ -190,6 +194,7 @@ function playRadioStation(index, shouldSyncWheel = true) {
         });
     }
 
+    localStorage.setItem('last_station_name', station.name);
     updateFavoriteUI();
 }
 
@@ -302,6 +307,7 @@ function togglePlayPause() {
         if (currentRadioIndex === -1 && builtInRadioStations.length > 0) return playRadioStation(0);
         if (currentRadioIndex === -1) return;
     }
+    player.setupVisualizer(); // Ensure AudioContext is active on user gesture
     isPlaying ? player.audioPlayer.pause() : player.audioPlayer.play();
 }
 
@@ -596,6 +602,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     refreshRadioUI();
 
+    // Load last station if exists
+    const lastStationName = localStorage.getItem('last_station_name');
+    if (lastStationName) {
+        const lastIndex = builtInRadioStations.findIndex(s => s.name === lastStationName);
+        if (lastIndex > -1) {
+            setTimeout(() => {
+                playRadioStation(lastIndex, true, false, false); // Pass false for autoPlay AND false for enableSound
+            }, 100);
+        }
+    }
+
     // Load saved volume or default to 50%
     const savedVol = localStorage.getItem('player_volume') || 50;
     ui.volumeSlider.value = savedVol;
@@ -605,6 +622,16 @@ window.addEventListener('DOMContentLoaded', () => {
     ui.initCollapseUI();
     ui.playerCollapseBtn.addEventListener('click', () => {
         ui.player.classList.toggle('collapsed');
+    });
+
+    // Pulse Background setting
+    const pulseSaved = localStorage.getItem('pulse_enabled') === 'true';
+    ui.pulseToggle.checked = pulseSaved;
+    player.setPulseEnabled(pulseSaved);
+
+    ui.pulseToggle.addEventListener('change', (e) => {
+        localStorage.setItem('pulse_enabled', e.target.checked);
+        player.setPulseEnabled(e.target.checked);
     });
 
     window.addEventListener('resize', () => {

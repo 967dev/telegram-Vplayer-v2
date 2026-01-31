@@ -7,7 +7,7 @@ function createWindow() {
         height: 800,
         minWidth: 320,
         minHeight: 568,
-        title: "Sonic Glow",
+        title: "967player",
         icon: path.join(__dirname, 'manifest.json'),
         webPreferences: {
             nodeIntegration: false,

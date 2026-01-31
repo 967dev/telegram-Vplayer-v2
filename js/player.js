@@ -7,9 +7,14 @@ let equalizerEnabled = true;
 let visualizerMode = 'wave'; // 'wave', 'circular', 'bars'
 let cachedPrimaryRGB = '139, 92, 246';
 let lastColorUpdate = 0;
+let pulseEnabled = false;
+let pulseIntensity = 0;
 
 function setupVisualizer() {
-    if (audioContext) return;
+    if (audioContext) {
+        if (audioContext.state === 'suspended') audioContext.resume();
+        return;
+    }
     try {
         if (!canvasCtx) canvasCtx = canvas.getContext('2d');
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -72,6 +77,50 @@ function animateVisualizer() {
         drawWaveVisualizer(primaryRgb, visibleCenterY, logicalW, logicalH);
     } else {
         drawBarVisualizer(primaryRgb, visibleCenterY, logicalW, logicalH);
+    }
+
+    if (pulseEnabled && dataArray) {
+        // Calculate bass intensity (average of first 8 frequency bins for a bit more range)
+        let bassSum = 0;
+        const bassCount = 8;
+        for (let i = 0; i < bassCount; i++) bassSum += dataArray[i];
+        const bassLevel = bassSum / bassCount / 255; // 0 to 1
+
+        // Smoothly approach target intensity but with a faster "attack" for punchiness
+        const targetIntensity = bassLevel;
+        if (targetIntensity > pulseIntensity) {
+            pulseIntensity = pulseIntensity * 0.5 + targetIntensity * 0.5; // Fast attack
+        } else {
+            pulseIntensity = pulseIntensity * 0.9 + targetIntensity * 0.1; // Slower decay
+        }
+
+        const scale = 1 + (pulseIntensity * 0.08); // Max 8% scale (was 5%)
+        const brightness = 1 + (pulseIntensity * 0.3); // Max 30% brightness boost (was 20%)
+        const saturate = 100 + (pulseIntensity * 50); // Up to 150% saturation
+        const transform = `translate(var(--tw-translate-x), var(--tw-translate-y)) scale(${scale})`;
+        const filter = `brightness(${brightness}) saturate(${saturate}%)`;
+
+        const imgBg = document.getElementById('image-bg');
+        const vidBg = document.getElementById('video-bg');
+
+        if (imgBg) {
+            imgBg.style.setProperty('transform', transform, 'important');
+            imgBg.style.setProperty('filter', filter, 'important');
+        }
+        if (vidBg) {
+            vidBg.style.setProperty('transform', transform, 'important');
+            vidBg.style.setProperty('filter', filter, 'important');
+        }
+    } else {
+        // Reset if disabled
+        const imgBg = document.getElementById('image-bg');
+        const vidBg = document.getElementById('video-bg');
+        if (imgBg) {
+            imgBg.style.filter = '';
+            // Don't reset transform here because parallax uses it, 
+            // but we can remove the extra scale if needed. 
+            // For now, simplicity:
+        }
     }
 
     canvasCtx.shadowBlur = 0;
@@ -252,6 +301,10 @@ function setVisualizerMode(mode) {
     visualizerMode = mode;
 }
 
+function setPulseEnabled(enabled) {
+    pulseEnabled = enabled;
+}
+
 export {
     audioPlayer,
     setupVisualizer,
@@ -261,5 +314,6 @@ export {
     setProgressOnAudio,
     handleParallax,
     visualizerMode,
-    setVisualizerMode
+    setVisualizerMode,
+    setPulseEnabled
 };
