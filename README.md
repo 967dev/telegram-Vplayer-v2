@@ -1,4 +1,4 @@
-# 🎵 Sonic Glow
+# 🎵 Web Radio Player
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-purple.svg)
@@ -11,7 +11,7 @@
 
 ## ✨ Key Features
 
-- **🌈 Neon Silk Visualizers**: Three distinct, high-fidelity visualization modes (Wave, Circular, Bars) optimized for High DPI (Retina) displays.
+- **🌈 Neon Visualizers**: Three distinct, high-fidelity visualization modes (Wave, Circular, Bars) optimized for High DPI (Retina) displays.
 - **📻 Global Radio Hub**: Pre-configured with premium electronic, lo-fi, and rap stations, featuring real-time error handling.
 - **📂 Local Library Support**: Drag-and-drop your own music tracks. Metadata and files are stored locally using encrypted IndexedDB.
 - **🖼️ Cinematic Backgrounds**: Support for high-quality video and image backgrounds with a "Universal Storage" system to bypass browser quota limits.
