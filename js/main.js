@@ -46,17 +46,17 @@ const builtInRadioStations = [
     { name: "Lofi Box", genre: "Chill / Lofi", streamUrl: "https://boxradio-edge-00.streamafrica.net/lofi" },
     { name: "Synthwave", genre: "Electronic", streamUrl: "https://synthwave.stream.laut.fm/synthwave" },
     { name: "Record Mashup", genre: "Mashup", streamUrl: "https://radiorecord.hostingradio.ru/mix96.aacp" },
-    { name: "Fantasy Radio", genre: "Medieval / Folk", streamUrl: "https://stream.laut.fm/fantasyradio", electronOnly: true },
+    { name: "Fantasy Radio", genre: "Medieval / Folk", streamUrl: "https://stream.laut.fm/fantasyradio", electronOnly: true, noMetadata: true },
     { name: "Deep House", genre: "House", streamUrl: "https://radiorecord.hostingradio.ru/deep96.aacp" },
     { name: "Like POP", genre: "Pop Hits", streamUrl: "https://likeradiostream.com/likepop" },
     { name: "Rock Record", genre: "Rock", streamUrl: "https://radiorecord.hostingradio.ru/rock96.aacp" },
     { name: "Phonk Record", genre: "Phonk", streamUrl: "https://radiorecord.hostingradio.ru/phonk96.aacp" },
     { name: "Rap Hits", genre: "Rap / Hip-Hop", streamUrl: "https://radiorecord.hostingradio.ru/rap96.aacp" },
-    { name: "Gothic Radio", genre: "Ethnic / Metal", streamUrl: "https://pub0202.101.ru:8443/stream/pro/aac/64/405" },
-    { name: "DFM Rap", genre: "Rap / Hip-Hop", streamUrl: "https://dfm-dfmrap.hostingradio.ru/dfmrap96.aacp" },
+    { name: "Gothic Radio", genre: "Ethnic / Metal", streamUrl: "https://pub0202.101.ru:8443/stream/pro/aac/64/405", noMetadata: true },
+    { name: "DFM Rap", genre: "Rap / Hip-Hop", streamUrl: "https://dfm-dfmrap.hostingradio.ru/dfmrap96.aacp", noMetadata: true },
     { name: "DNB Record", genre: "DnB", streamUrl: "https://radiorecord.hostingradio.ru/drumhits96.aacp" },
     { name: "DNB Liquid", genre: "Liquid DnB", streamUrl: "https://radiorecord.hostingradio.ru/liquidfunk96.aacp" },
-    { name: "Jazz Radio", genre: "Classic Jazz", streamUrl: "https://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3" },
+    { name: "Jazz Radio", genre: "Classic Jazz", streamUrl: "https://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3", noMetadata: true },
     { name: "Chillout", genre: "Chillout / Lounge", streamUrl: "https://radiorecord.hostingradio.ru/chil96.aacp" },
     { name: "Techno Record", genre: "Techno", streamUrl: "https://radiorecord.hostingradio.ru/techno96.aacp" },
     { name: "Future House", genre: "Future House", streamUrl: "https://radiorecord.hostingradio.ru/fut96.aacp" }
@@ -84,6 +84,9 @@ function setMode(view) {
     ui.modeRadioBtn.classList.toggle('bg-gray-700', view !== 'radio');
 
     localStorage.setItem('player_view', view);
+    if (view !== 'radio' && window.electronAPI && window.electronAPI.stopMetadata) {
+        window.electronAPI.stopMetadata();
+    }
 
     // For internal logic, currentMode tracks what kind of item is playing
     // but the view tracks what is visible.
@@ -100,6 +103,9 @@ function setPlayingState(playing) {
 function playTrack(index) {
     if (index < 0 || index >= playlist.length) return;
     player.setupVisualizer();
+    if (window.electronAPI && window.electronAPI.stopMetadata) {
+        window.electronAPI.stopMetadata();
+    }
     currentMode = 'playlist'; // Set playback mode
     currentIndex = index;
     currentRadioIndex = -1;
@@ -152,6 +158,11 @@ function playRadioStation(index, shouldSyncWheel = true, autoPlay = true, enable
     ui.currentTrackArt.src = "https://placehold.co/64x64/1f2937/4b5563?text=Radio";
     ui.progressWrapper.classList.add('hidden');
     ui.player.classList.remove('translate-y-full');
+    if (window.electronAPI && window.electronAPI.startMetadata && !station.noMetadata) {
+        window.electronAPI.startMetadata(station.streamUrl);
+    } else if (window.electronAPI && window.electronAPI.stopMetadata) {
+        window.electronAPI.stopMetadata();
+    }
 
     if (shouldSyncWheel) {
         const visibleList = getFilteredRadioList();
@@ -573,8 +584,22 @@ function handleBgUpload(event) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    Telegram.WebApp.ready();
-    colorThief = new ColorThief();
+    if (typeof ColorThief !== 'undefined') {
+        colorThief = new ColorThief();
+    }
+
+    if (window.electronAPI && window.electronAPI.onMetadataUpdated) {
+        window.electronAPI.onMetadataUpdated((fullTitle) => {
+            const parts = fullTitle.split(' - ');
+            if (parts.length >= 2) {
+                ui.currentTrackTitle.textContent = parts[1].trim();
+                ui.currentTrackArtist.textContent = parts[0].trim();
+            } else {
+                ui.currentTrackTitle.textContent = fullTitle;
+                ui.currentTrackArtist.textContent = "Radio Stream";
+            }
+        });
+    }
 
     // Register Service Worker for PWA Store support
     if ('serviceWorker' in navigator) {
@@ -607,8 +632,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (lastStationName) {
         const lastIndex = builtInRadioStations.findIndex(s => s.name === lastStationName);
         if (lastIndex > -1) {
+            console.log('Auto-playing last station:', lastStationName);
             setTimeout(() => {
-                playRadioStation(lastIndex, true, false, false); // Pass false for autoPlay AND false for enableSound
+                playRadioStation(lastIndex, true, false, false);
             }, 100);
         }
     }
@@ -763,6 +789,10 @@ window.addEventListener('DOMContentLoaded', () => {
             updateModal.classList.remove('hidden');
         });
 
+        window.electronAPI.onDownloadProgress((percent) => {
+            updateMessage.textContent = `Downloading update: ${Math.round(percent)}%`;
+        });
+
         window.electronAPI.onUpdateDownloaded(() => {
             updateMessage.textContent = "Update downloaded. Ready to install!";
             restartBtn.classList.remove('hidden');
@@ -780,5 +810,10 @@ window.addEventListener('DOMContentLoaded', () => {
         closeUpdateModal.addEventListener('click', () => {
             updateModal.classList.add('hidden');
         });
+    }
+
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
     }
 });
